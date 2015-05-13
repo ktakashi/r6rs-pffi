@@ -4,11 +4,11 @@
   (open-shared-object "tests/callback.so"))
 
 (define cb-init
-  (foreign-procedure libcallback cb_init () void))
+  (foreign-procedure libcallback void cb_init ()))
 (define register-callback
-  (foreign-procedure libcallback register_callback (char callback) void))
+  (foreign-procedure libcallback void register_callback (char callback)))
 (define event-loop
-  (foreign-procedure libcallback event_loop () void))
+  (foreign-procedure libcallback void event_loop ()))
 
 (define ouch
   (c-callback void ((char c))

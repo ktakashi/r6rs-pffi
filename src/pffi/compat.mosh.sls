@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; src/pffi/common.sls - Common layner
+;;; src/pffi/compat.sagittarius.sls - Compatible layer for Sagittarius
 ;;;  
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,12 +28,19 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+;; this file provides compatible layer for (pffi procedure)
+;; if implementations can't make this layer, then make
+;; pffi/procedure.$name.sls file so that (pffi) library can
+;; look it up.
+
 #!r6rs
-(library (pffi common)
-    (export foreign-procedure
-	    c-callback
+(library (pffi compat)
+    (export (rename (open-shared-library open-shared-object)
+		    (lookup-shared-library lookup-shared-object))
+
+	    make-c-function
+	    make-c-callback
 	    free-c-callback
-	    open-shared-object
 
 	    ;; primitive types
 	    char  unsigned-char
@@ -48,21 +55,28 @@
 	    pointer callback
 	    void)
     (import (rnrs)
-	    (pffi compat))
+	    (mosh ffi))
 
-(define-syntax foreign-procedure
-  (syntax-rules ()
-    ((_ lib name (args ...) ret)
-     (make-c-function lib ret 'name (list args ...)))))
-
-(define-syntax c-callback
-  (lambda (x)
-    (syntax-case x (lambda)
-      ((k ret ((type var) ...) (lambda (formals ...) body1 body ...))
-       (or (for-all bound-identifier=? #'(var ...) #'(formals ...))
-	   (syntax-violation 'c-callback "invalid declaration"))
-       #'(k ret (type ...) (lambda (var ...) body1 body ...)))
-      ((_ ret (args ...) proc)
-       #'(make-c-callback ret (list args ...) proc)))))
+(define char           'char)
+(define unsigned-char  'unsigned-char)
+(define short          'short)
+(define unsigned-short 'unsigned-short)
+(define int            'int)
+(define unsigned-int   'unsigned-int)
+(define long           'long)
+(define unsigned-long  'unsigned-long)
+(define float          'float)
+(define double         'double)
+(define int8_t         'int8_t)
+(define uint8_t        'uint8_t)
+(define int16_t        'int16_t)
+(define uint16_t       'uint16_t)
+(define int32_t        'int32_t)
+(define uint32_t       'uint32_t)
+(define int64_t        'int64_t)
+(define uint64_t       'uint64_t)
+(define callback       'callback)
+(define void           'void)
+(define pointer        'void*)
 
 )

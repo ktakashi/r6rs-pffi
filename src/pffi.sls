@@ -48,4 +48,4 @@
 	    pointer callback
 	    void
 	    )
-    (import (pffi common)))
+    (import (pffi procedure)))

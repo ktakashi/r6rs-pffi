@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; src/pffi/compat.vicare.sls - Compatible layer for Vicare
+;;; src/pffi/procedure.sls - FFI Procedure
 ;;;  
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,19 +28,12 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; this file provides compatible layer for (pffi procedure)
-;; if implementations can't make this layer, then make
-;; pffi/procedure.$name.sls file so that (pffi) library can
-;; look it up.
-
 #!r6rs
-(library (pffi compat)
-    (export open-shared-object	 ;; form (vicare ffi)
-	    lookup-shared-object ;; ditto
-
-	    make-c-function
-	    make-c-callback
+(library (pffi procedure)
+    (export foreign-procedure
+	    c-callback
 	    free-c-callback
+	    open-shared-object
 
 	    ;; primitive types
 	    char  unsigned-char
@@ -55,39 +48,21 @@
 	    pointer callback
 	    void)
     (import (rnrs)
-	    (vicare ffi))
+	    (pffi compat))
 
+(define-syntax foreign-procedure
+  (syntax-rules ()
+    ((_ lib ret name (args ...))
+     (make-c-function lib ret 'name (list args ...)))))
 
-(define char           'signed-char)
-(define unsigned-char  'unsigned-char)
-(define short          'signed-short)
-(define unsigned-short 'unsigned-short)
-(define int            'signed-int)
-(define unsigned-int   'unsigned-int)
-(define long           'signed-long)
-(define unsigned-long  'unsigned-long)
-(define float          'float)
-(define double         'double)
-(define int8_t         'int8_t)
-(define uint8_t        'uint8_t)
-(define int16_t        'int16_t)
-(define uint16_t       'uint16_t)
-(define int32_t        'int32_t)
-(define uint32_t       'uint32_t)
-(define int64_t        'int64_t)
-(define uint64_t       'uint64_t)
-(define pointer        'pointer)
-(define callback       'callback)
-;; seems it's not documented but works
-(define void           'void)
-
-(define (make-c-function lib ret name arg-type)
-  (let ((func (lookup-shared-object lib (symbol->string name)))
-	(m (make-c-callout-maker ret arg-type)))
-    (m func)))
-
-(define (make-c-callback ret args proc)
-  (let ((m (make-c-callback-maker ret args)))
-    (m proc)))
+(define-syntax c-callback
+  (lambda (x)
+    (syntax-case x (lambda)
+      ((k ret ((type var) ...) (lambda (formals ...) body1 body ...))
+       (or (for-all bound-identifier=? #'(var ...) #'(formals ...))
+	   (syntax-violation 'c-callback "invalid declaration"))
+       #'(k ret (type ...) (lambda (var ...) body1 body ...)))
+      ((_ ret (args ...) proc)
+       #'(make-c-callback ret (list args ...) proc)))))
 
 )

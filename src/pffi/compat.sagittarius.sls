@@ -28,9 +28,9 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; this file provides compatible layer for (pffi common)
+;; this file provides compatible layer for (pffi procedure)
 ;; if implementations can't make this layer, then make
-;; pffi/common.$name.sls file so that (pffi) library can
+;; pffi/procedure.$name.sls file so that (pffi) library can
 ;; look it up.
 
 #!r6rs
