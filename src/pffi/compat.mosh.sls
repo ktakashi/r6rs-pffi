@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; src/pffi/compat.sagittarius.sls - Compatible layer for Sagittarius
+;;; src/pffi/compat.mosh.sls - Compatible layer for Mosh
 ;;;  
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -35,8 +35,7 @@
 
 #!r6rs
 (library (pffi compat)
-    (export (rename (open-shared-library open-shared-object)
-		    (lookup-shared-library lookup-shared-object))
+    (export (rename (open-shared-library open-shared-object))
 
 	    make-c-function
 	    make-c-callback

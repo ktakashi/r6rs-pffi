@@ -36,7 +36,6 @@
 #!r6rs
 (library (pffi compat)
     (export open-shared-object	 ;; form (vicare ffi)
-	    lookup-shared-object ;; ditto
 
 	    make-c-function
 	    make-c-callback

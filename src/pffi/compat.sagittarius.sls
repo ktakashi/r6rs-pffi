@@ -35,8 +35,7 @@
 
 #!r6rs
 (library (pffi compat)
-    (export (rename (open-shared-library open-shared-object)
-		    (lookup-shared-library lookup-shared-object))
+    (export (rename (open-shared-library open-shared-object))
 
 	    make-c-function
 	    make-c-callback
