@@ -76,7 +76,9 @@
 (define int64_t        'int64_t)
 (define uint64_t       'uint64_t)
 (define pointer        'pointer)
-(define callback       'callback)
+(define-syntax callback
+  (syntax-rules ()
+    ((_ ignore ...) 'callback)))
 ;; seems it's not documented but works
 (define void           'void)
 

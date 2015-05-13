@@ -74,7 +74,9 @@
 (define uint32_t       'uint32_t)
 (define int64_t        'int64_t)
 (define uint64_t       'uint64_t)
-(define callback       'callback)
+(define-syntax callback
+  (syntax-rules ()
+    ((_ ignore ...) 'callback)))
 (define void           'void)
 (define pointer        'void*)
 

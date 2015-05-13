@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; src/pffi/compat.sagittarius.sls - Compatible layer for Sagittarius
+;;; src/pffi/compat.mzscheme.sls - Compatible layer for Racket
 ;;;  
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -35,7 +35,8 @@
 
 #!r6rs
 (library (pffi compat)
-    (export (rename (open-shared-library open-shared-object))
+    (export open-shared-object
+	    ;; lookup-shared-object
 
 	    make-c-function
 	    make-c-callback
@@ -54,13 +55,62 @@
 	    pointer callback
 	    void)
     (import (rnrs)
-	    (rename (sagittarius ffi) (callback %callback))
-	    (sagittarius control))
-
+	    (ffi unsafe)
+	    (rename (only (racket base) cons) (cons icons))
+	    (only (srfi :13) string-index-right))
+ 
+(define char           _sint8)
+(define unsigned-char  _uint8)
+(define short          _sshort)
+(define unsigned-short _ushort)
+(define int            _sint)
+(define unsigned-int   _uint)
+(define long           _slong)
+(define unsigned-long  _ulong)
+(define float          _float)
+(define double         _double)
+(define int8_t         _int8)
+(define uint8_t        _uint8)
+(define int16_t        _int16)
+(define uint16_t       _uint16)
+(define int32_t        _int32)
+(define uint32_t       _uint32)
+(define int64_t        _int64)
+(define uint64_t       _uint64)
+(define pointer        _pointer)
 (define-syntax callback
   (syntax-rules ()
-    ((_ ignore ...) %callback)))
-(define pointer void*)
-;; It's not exported...
-(define make-c-callback (with-library (sagittarius ffi) make-c-callback))
+    ((_ ret (args ...))
+     (_cprocedure (->immutable-list (list args ...)) ret))))
+(define void           _void)
+
+(define (open-shared-object path)
+  (let* ((index (string-index-right path #\.))
+	 (file (if index
+		   (substring path 0 index)
+		   path)))
+    (ffi-lib path)))
+
+;; Fxxk!!!
+(define (->immutable-list p)
+  (let loop ((p p))
+    (cond ((null? p) p)
+	  ((pair? p) (icons (car p) (loop (cdr p))))
+	  (else p))))
+	
+
+(define (make-c-function lib ret name arg-type)
+  ;; TODO failure thunk, what should we do when it couldn't be found
+  (get-ffi-obj (symbol->string name) lib 
+	       ;; DAMN YOU MORON!!!
+	       ;; seems this doesn't accept mutable pairs
+	       ;; so convert it.
+	       (_cprocedure (->immutable-list arg-type) ret)
+	       (lambda () (error 'make-c-function "not found" name))))
+
+(define (make-c-callback ret args proc) proc)
+
+;; dummy
+(define (free-c-callback ignore) #t)
+
 )

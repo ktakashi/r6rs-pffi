@@ -19,4 +19,10 @@
 (test-equal "plus" 2
 	    ((foreign-procedure test-lib int plus (int int)) 1 1))
 
+(define callback-proc
+  (foreign-procedure test-lib int callback_proc ((callback int (int)) int)))
+(let ((proc (c-callback int ((int i)) (lambda (i) (* i i)))))
+  (test-equal "callback" 4 (callback-proc proc 2))
+  (test-assert "free" (free-c-callback proc)))
+
 (test-end)

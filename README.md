@@ -31,3 +31,4 @@ TBD
 - Sagittarius (0.6.4)
 - Vicare (0.3d7)
 - Mosh (0.2.7)
+- Racket (plt-r6rs 6.1.1)
