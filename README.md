@@ -26,7 +26,8 @@ foreign procedure.
 TBD
 
 
-## Supported implementations
+## Supporting implementations
 
 - Sagittarius (0.6.4)
 - Vicare (0.3d7)
+- Mosh (0.2.7)
