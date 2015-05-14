@@ -16,10 +16,17 @@ Lookup foreign procedure _symbol-name_ from given _shared-object_ and returns
 foreign procedure. A foreign procedure is a mere procedure so users can just
 call as if it's a Scheme procedure.
 
-#### [Macro] `c-callback` _return-type_ (_types ...) _proc_
+#### [Macro] `c-callback` _return-type_ (_types_ ...) _proc_
 Creates a callback. Callback is a mechanism that makes foreign procedure
 call Scheme procedure. The given _proc_ is the procedure called from
 foreign procedure.
+
+#### [Procedure] `free-c-callback` _callback_
+Release allocated callback if needed.
+
+Callback object may not be released automatically so it is user's responsibilty
+to make sure to release it.
+
 
 ### Primitive types
 
