@@ -34,6 +34,7 @@
 	    c-callback
 	    free-c-callback		; unfortunately, this is needed
 	    open-shared-object
+	    lookup-shared-object
 
 	    ;; primitive types
 	    char  unsigned-char
@@ -47,5 +48,52 @@
 	    int64_t uint64_t
 	    pointer callback
 	    void
+
+	    	    ;; pointer ref
+	    pointer-ref-c-uint8
+	    pointer-ref-c-int8
+	    pointer-ref-c-uint16
+	    pointer-ref-c-int16
+	    pointer-ref-c-uint32
+	    pointer-ref-c-int32
+	    pointer-ref-c-uint64
+	    pointer-ref-c-int64
+	    pointer-ref-c-unsigned-char
+	    pointer-ref-c-char
+	    pointer-ref-c-unsigned-short
+	    pointer-ref-c-short
+	    pointer-ref-c-unsigned-int
+	    pointer-ref-c-int
+	    pointer-ref-c-unsigned-long
+	    pointer-ref-c-long
+	    pointer-ref-c-float
+	    pointer-ref-c-double
+	    pointer-ref-c-pointer
+
+	    ;; pointer set
+	    pointer-set-c-uint8!
+	    pointer-set-c-int8!
+	    pointer-set-c-uint16!
+	    pointer-set-c-int16!
+	    pointer-set-c-uint32!
+	    pointer-set-c-int32!
+	    pointer-set-c-uint64!
+	    pointer-set-c-int64!
+	    pointer-set-c-unsigned-char!
+	    pointer-set-c-char!
+	    pointer-set-c-unsigned-short!
+	    pointer-set-c-short!
+	    pointer-set-c-unsigned-int!
+	    pointer-set-c-int!
+	    pointer-set-c-unsigned-long!
+	    pointer-set-c-long!
+	    pointer-set-c-float!
+	    pointer-set-c-double!
+	    pointer-set-c-pointer!
+
+	    ;; variable
+	    define-foreign-variable
+	    
 	    )
-    (import (pffi procedure)))
+    (import (pffi procedure)
+	    (pffi variable)))

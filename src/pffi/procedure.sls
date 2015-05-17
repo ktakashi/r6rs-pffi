@@ -34,6 +34,7 @@
 	    c-callback
 	    free-c-callback
 	    open-shared-object
+	    lookup-shared-object
 
 	    ;; primitive types
 	    char  unsigned-char

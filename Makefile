@@ -1,4 +1,9 @@
 LDPATH=$(LD_LIBRARY_PATH)
+WORD_BIT=$(shell getconf WORD_BIT)
+CFLAGS_32=
+CFLAGS_64=-fPIC
+CFLAGS=$(CFLAGS_$(WORD_BIT))
+
 
 all:
 	echo 'usage: make $traget'
@@ -8,7 +13,7 @@ all:
 #	echo '  ypsilon'
 
 prepare:
-	cd tests; gcc -fPIC -shared -o functions.so functions.c
+	cd tests; gcc $(CFLAGS) -shared -o functions.so functions.c
 
 # Sagittarius and Vicare read shared object from LD_LIBRARY_PATH
 sagittarius: prepare

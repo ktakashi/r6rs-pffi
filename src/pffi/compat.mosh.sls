@@ -36,7 +36,7 @@
 #!r6rs
 (library (pffi compat)
     (export (rename (open-shared-library open-shared-object))
-
+	    (rename (lookup-shared-library lookup-shared-object))
 	    make-c-function
 	    make-c-callback
 	    free-c-callback
@@ -52,9 +52,54 @@
 	    int32_t uint32_t
 	    int64_t uint64_t
 	    pointer callback
-	    void)
+	    void
+
+	    ;; pointer ref
+	    pointer-ref-c-uint8
+	    pointer-ref-c-int8
+	    pointer-ref-c-uint16
+	    pointer-ref-c-int16
+	    pointer-ref-c-uint32
+	    pointer-ref-c-int32
+	    pointer-ref-c-uint64
+	    pointer-ref-c-int64
+	    pointer-ref-c-unsigned-char
+	    (rename (pointer-ref-c-signed-char pointer-ref-c-char))
+	    pointer-ref-c-unsigned-short
+	    (rename (pointer-ref-c-signed-short pointer-ref-c-short))
+	    pointer-ref-c-unsigned-int
+	    (rename (pointer-ref-c-signed-int pointer-ref-c-int))
+	    pointer-ref-c-unsigned-long
+	    (rename (pointer-ref-c-signed-long pointer-ref-c-long))
+	    pointer-ref-c-float
+	    pointer-ref-c-double
+	    pointer-ref-c-pointer
+
+	    ;; pointer set
+	    pointer-set-c-uint8!
+	    pointer-set-c-int8!
+	    pointer-set-c-uint16!
+	    pointer-set-c-int16!
+	    pointer-set-c-uint32!
+	    pointer-set-c-int32!
+	    pointer-set-c-uint64!
+	    pointer-set-c-int64!
+	    ;; Mosh doesn't have pointer-set for unsigned types
+	    ;; well we don't make effort
+	    (rename (pointer-set-c-char! pointer-set-c-unsigned-char!))
+	    pointer-set-c-char!
+	    (rename (pointer-set-c-short! pointer-set-c-unsigned-short!))
+	    pointer-set-c-short!
+	    (rename (pointer-set-c-int! pointer-set-c-unsigned-int!))
+	    pointer-set-c-int!
+	    (rename (pointer-set-c-long! pointer-set-c-unsigned-long!))
+	    pointer-set-c-long!
+	    pointer-set-c-float!
+	    pointer-set-c-double!
+	    pointer-set-c-pointer!
+	    )
     (import (rnrs)
-	    (mosh ffi))
+	    (rename (mosh ffi) (lookup-shared-library %lookup-shared-library)))
 
 (define char           'char)
 (define unsigned-char  'unsigned-char)
@@ -79,5 +124,8 @@
     ((_ ignore ...) 'callback)))
 (define void           'void)
 (define pointer        'void*)
+
+(define (lookup-shared-library lib name)
+  (%lookup-shared-library lib (string->symbol name)))
 
 )

@@ -36,7 +36,7 @@
 #!r6rs
 (library (pffi compat)
     (export open-shared-object
-	    ;; lookup-shared-object
+	    lookup-shared-object
 
 	    make-c-function
 	    make-c-callback
@@ -53,7 +53,50 @@
 	    int32_t uint32_t
 	    int64_t uint64_t
 	    pointer callback
-	    void)
+	    void
+	    
+	    ;; pointer ref
+	    pointer-ref-c-uint8
+	    pointer-ref-c-int8
+	    pointer-ref-c-uint16
+	    pointer-ref-c-int16
+	    pointer-ref-c-uint32
+	    pointer-ref-c-int32
+	    pointer-ref-c-uint64
+	    pointer-ref-c-int64
+	    pointer-ref-c-unsigned-char
+	    pointer-ref-c-char
+	    pointer-ref-c-unsigned-short
+	    pointer-ref-c-short
+	    pointer-ref-c-unsigned-int
+	    pointer-ref-c-int
+	    pointer-ref-c-unsigned-long
+	    pointer-ref-c-long
+	    pointer-ref-c-float
+	    pointer-ref-c-double
+	    pointer-ref-c-pointer
+
+	    ;; pointer set
+	    pointer-set-c-uint8!
+	    pointer-set-c-int8!
+	    pointer-set-c-uint16!
+	    pointer-set-c-int16!
+	    pointer-set-c-uint32!
+	    pointer-set-c-int32!
+	    pointer-set-c-uint64!
+	    pointer-set-c-int64!
+	    pointer-set-c-unsigned-char!
+	    pointer-set-c-char!
+	    pointer-set-c-unsigned-short!
+	    pointer-set-c-short!
+	    pointer-set-c-unsigned-int!
+	    pointer-set-c-int!
+	    pointer-set-c-unsigned-long!
+	    pointer-set-c-long!
+	    pointer-set-c-float!
+	    pointer-set-c-double!
+	    pointer-set-c-pointer!
+	    )
     (import (rnrs)
 	    (ffi unsafe)
 	    (rename (only (racket base) cons) (cons icons))
@@ -78,6 +121,17 @@
 (define int64_t        _int64)
 (define uint64_t       _uint64)
 (define pointer        _pointer)
+
+;; for convenience
+(define int8         _int8)
+(define uint8        _uint8)
+(define int16        _int16)
+(define uint16       _uint16)
+(define int32        _int32)
+(define uint32       _uint32)
+(define int64        _int64)
+(define uint64       _uint64)
+
 (define-syntax callback
   (syntax-rules ()
     ((_ ret (args ...))
@@ -90,6 +144,10 @@
 		   (substring path 0 index)
 		   path)))
     (ffi-lib path)))
+
+(define (lookup-shared-object lib name)
+  ;; returning pointer is enough for now.
+  (get-ffi-obj name lib _pointer))
 
 ;; Fxxk!!!
 (define (->immutable-list p)
@@ -112,5 +170,41 @@
 
 ;; dummy
 (define (free-c-callback ignore) #t)
+
+
+(define-syntax define-deref
+  (lambda (x)
+    (define (gen-name t)
+      (let ((s (symbol->string (syntax->datum t))))
+	(list (string->symbol (string-append "pointer-ref-c-" s))
+	      (string->symbol (string-append "pointer-set-c-" s "!")))))
+    (syntax-case x ()
+      ((k type)
+       (with-syntax (((ref set!) (datum->syntax #'k (gen-name #'type))))
+	 #'(begin
+	     (define (ref ptr offset)
+	       (ptr-ref ptr type offset))
+	     (define (set! ptr offset value)
+	       (ptr-set! ptr type offset value))))))))
+
+(define-deref char)
+(define-deref unsigned-char)
+(define-deref short)
+(define-deref unsigned-short)
+(define-deref int)
+(define-deref unsigned-int)
+(define-deref long)
+(define-deref unsigned-long)
+(define-deref float)
+(define-deref double)
+(define-deref int8)
+(define-deref uint8)
+(define-deref int16)
+(define-deref uint16)
+(define-deref int32)
+(define-deref uint32)
+(define-deref int64)
+(define-deref uint64)
+(define-deref pointer)
 
 )

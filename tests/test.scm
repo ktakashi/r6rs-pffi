@@ -25,4 +25,13 @@
   (test-equal "callback" 4 (callback-proc proc 2))
   (test-assert "free" (free-c-callback proc)))
 
+
+(let ()
+  (define-foreign-variable test-lib int externed_variable)
+  (test-equal "foreign-variable" 10 externed-variable)
+  (test-assert "set! foreign-variable" (set! externed-variable 11))
+  (test-equal "foreign-variable (2)" 11 externed-variable)
+  (test-equal "foreign-variable (3)" 11
+	      ((foreign-procedure test-lib int get_externed_variable ()))))
+
 (test-end)
