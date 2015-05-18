@@ -34,7 +34,10 @@
 	    c-callback
 	    free-c-callback
 	    open-shared-object
-	    lookup-shared-object
+	    ;; TODO should we export these primitives?
+	    ;; lookup-shared-object 
+	    ;; make-c-function
+	    ;; make-c-callback
 
 	    ;; primitive types
 	    char  unsigned-char
@@ -48,6 +51,18 @@
 	    int64_t uint64_t
 	    pointer callback
 	    void
+
+	    size-of-char
+	    size-of-short
+	    size-of-int
+	    size-of-long
+	    size-of-float
+	    size-of-double
+	    size-of-pointer
+	    size-of-int8_t
+	    size-of-int16_t
+	    size-of-int32_t
+	    size-of-int64_t
 
 	    ;; pointer ref
 	    pointer-ref-c-uint8

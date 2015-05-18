@@ -40,4 +40,19 @@
    (bytevector->pointer bv) 10)
   (test-equal "passing bytevector"
 	      '(1 1 1 1 1) (bytevector->uint-list bv (native-endianness) 4)))
+
+(test-equal "size-of-char"  1 size-of-char)
+(test-equal "size-of-short" 2 size-of-short)
+(test-equal "size-of-int"   4 size-of-int)
+(test-assert "size-of-long"   (memv size-of-long '(4 8)))
+(test-assert "size-of-pointer"   (memv size-of-pointer '(4 8)))
+;; I think we can assume this
+(test-equal "size-of-float"  4 size-of-float)
+(test-equal "size-of-double" 8 size-of-double)
+(test-equal "size-of-int8_t" 1 size-of-int8_t)
+(test-equal "size-of-int16_t" 2 size-of-int16_t)
+(test-equal "size-of-int32_t" 4 size-of-int32_t)
+(test-equal "size-of-int64_t" 8 size-of-int64_t)
+
+
 (test-end)

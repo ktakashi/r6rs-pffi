@@ -37,6 +37,8 @@
 	    lookup-shared-object
 
 	    ;; primitive types
+	    ;; maybe these should be exported from
+	    ;; different library
 	    char  unsigned-char
 	    short unsigned-short
 	    int   unsigned-int
@@ -47,7 +49,20 @@
 	    int32_t uint32_t
 	    int64_t uint64_t
 	    pointer callback
-	    void)
+	    void
+
+	    size-of-char
+	    size-of-short
+	    size-of-int
+	    size-of-long
+	    size-of-float
+	    size-of-double
+	    size-of-pointer
+	    size-of-int8_t
+	    size-of-int16_t
+	    size-of-int32_t
+	    size-of-int64_t
+	    )
     (import (rnrs)
 	    (pffi compat))
 
