@@ -61,7 +61,7 @@
     (syntax-case x (lambda)
       ((k ret ((type var) ...) (lambda (formals ...) body1 body ...))
        (or (for-all bound-identifier=? #'(var ...) #'(formals ...))
-	   (syntax-violation 'c-callback "invalid declaration"))
+	   (syntax-violation 'c-callback "invalid declaration" '#'x))
        #'(k ret (type ...) (lambda (var ...) body1 body ...)))
       ((_ ret (args ...) proc)
        #'(make-c-callback ret (list args ...) proc)))))

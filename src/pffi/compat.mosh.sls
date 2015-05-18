@@ -97,6 +97,20 @@
 	    pointer-set-c-float!
 	    pointer-set-c-double!
 	    pointer-set-c-pointer!
+
+	    size-of-char
+	    size-of-short
+	    size-of-int
+	    size-of-long
+	    size-of-float
+	    size-of-double
+	    size-of-pointer
+	    size-of-int8_t
+	    size-of-int16_t
+	    size-of-int32_t
+	    size-of-int64_t
+
+	    bytevector->pointer
 	    )
     (import (rnrs)
 	    (rename (mosh ffi) (lookup-shared-library %lookup-shared-library)))
@@ -127,5 +141,16 @@
 
 (define (lookup-shared-library lib name)
   (%lookup-shared-library lib (string->symbol name)))
+
+(define size-of-char    1)
+(define size-of-int8_t  1)
+(define size-of-int16_t 2)
+(define size-of-int32_t 4)
+(define size-of-int64_t 8)
+
+(define (bytevector->pointer bv . maybe-offset)
+  ;; There is no possibility to do this on Mosh.
+  ;; so offset will always be ignored.
+  bv)
 
 )

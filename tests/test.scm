@@ -21,6 +21,7 @@
 
 (define callback-proc
   (foreign-procedure test-lib int callback_proc ((callback int (int)) int)))
+
 (let ((proc (c-callback int ((int i)) (lambda (i) (* i i)))))
   (test-equal "callback" 4 (callback-proc proc 2))
   (test-assert "free" (free-c-callback proc)))
@@ -35,8 +36,8 @@
 	      ((foreign-procedure test-lib int get_externed_variable ()))))
 
 (let ((bv (make-bytevector (* 4 5))))
-  ((foreign-procedure test-lib void fill_one (pointer int)) bv 10)
+  ((foreign-procedure test-lib void fill_one (pointer int)) 
+   (bytevector->pointer bv) 10)
   (test-equal "passing bytevector"
 	      '(1 1 1 1 1) (bytevector->uint-list bv (native-endianness) 4)))
-
 (test-end)

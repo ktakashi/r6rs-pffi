@@ -95,9 +95,25 @@
 	    pointer-set-c-double!
 	    pointer-set-c-pointer!
 	    
+	    ;; sizeof
+	    (rename
+	     (SIZEOF_CHAR    size-of-char)
+	     (SIZEOF_SHORT   size-of-short)
+	     (SIZEOF_INT     size-of-int)	     
+	     (SIZEOF_LONG    size-of-long)
+	     (SIZEOF_FLOAT   size-of-float)
+	     (SIZEOF_DOUBLE  size-of-double)
+	     (SIZEOF_POINTER size-of-pointer))
+	    size-of-int8_t
+	    size-of-int16_t
+	    size-of-int32_t
+	    size-of-int64_t
+
+	    bytevector->pointer
 	    )
     (import (rnrs)
-	    (vicare ffi))
+	    (vicare ffi)
+	    (vicare platform words))
 
 
 (define char           'signed-char)
@@ -133,5 +149,15 @@
 (define (make-c-callback ret args proc)
   (let ((m (make-c-callback-maker ret args)))
     (m proc)))
+
+
+(define size-of-int8_t  1)
+(define size-of-int16_t 2)
+(define size-of-int32_t 4)
+(define size-of-int64_t 8)
+
+(define (bytevector->pointer bv . maybe-offset)
+  ;; For now
+  bv)
 
 )

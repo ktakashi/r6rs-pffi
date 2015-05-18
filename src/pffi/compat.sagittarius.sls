@@ -105,6 +105,21 @@
 	    pointer-set-c-double!
 	    pointer-set-c-pointer!
 	    
+	    ;; sizeof
+	    size-of-char
+	    size-of-short
+	    size-of-int
+	    size-of-long
+	    size-of-float
+	    size-of-double
+	    (rename (size-of-void* size-of-pointer))
+	    size-of-int8_t
+	    size-of-int16_t
+	    size-of-int32_t
+	    size-of-int64_t
+
+	    ;; for compatibility of guile
+	    bytevector->pointer
 	    )
     (import (rnrs)
 	    (rename (sagittarius ffi) (callback %callback))

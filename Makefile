@@ -10,10 +10,14 @@ all:
 	echo '  sagittarius'
 	echo '  vicare'
 	echo '  mosh'
+	echo '  racket'
+	echo '  guile'
 #	echo '  ypsilon'
 
 prepare:
 	cd tests; gcc $(CFLAGS) -shared -o functions.so functions.c
+
+test: sagittarius mosh vicare racket guile
 
 # Sagittarius and Vicare read shared object from LD_LIBRARY_PATH
 sagittarius: prepare
@@ -28,3 +32,11 @@ mosh: prepare
 
 racket: prepare
 	LD_LIBRARY_PATH=$(LDPATH):tests; plt-r6rs ++path ./src tests/test.scm
+
+# guile doesn't read .sls or .guile.sls by default...
+prepare-guile:
+	echo \(set! %load-extensions \'\(\".guile.sls\" \".sls\" \".scm\"\)\) > .guile.rc
+
+guile: prepare prepare-guile
+	LD_LIBRARY_PATH=$(LDPATH):tests; guile --no-auto-compile -l .guile.rc -L src tests/test.scm
+	rm .guile.rc

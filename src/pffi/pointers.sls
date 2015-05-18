@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; src/pffi.sls - Portable Foreign Function Interface 
+;;; src/pffi/pointers.sls - Pointer operations
 ;;;  
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -29,26 +29,9 @@
 ;;;  
 
 #!r6rs
-(library (pffi)
-    (export foreign-procedure
-	    c-callback
-	    free-c-callback
-	    open-shared-object
-	    lookup-shared-object
 
-	    ;; primitive types
-	    char  unsigned-char
-	    short unsigned-short
-	    int   unsigned-int
-	    long  unsigned-long
-	    float double
-	    int8_t  uint8_t
-	    int16_t uint16_t
-	    int32_t uint32_t
-	    int64_t uint64_t
-	    pointer callback
-	    void
-
+(library (pffi pointers)
+    (export bytevector->pointer ;; for guile
 	    ;; pointer ref
 	    pointer-ref-c-uint8
 	    pointer-ref-c-int8
@@ -89,16 +72,5 @@
 	    pointer-set-c-long!
 	    pointer-set-c-float!
 	    pointer-set-c-double!
-	    pointer-set-c-pointer!
-
-	    ;; variable
-	    define-foreign-variable
-	    
-	    ;; for guile
-	    bytevector->pointer
-	    )
-    (import (pffi procedure)
-	    (pffi variable)
-	    (pffi pointers))
-
-)
+	    pointer-set-c-pointer!)
+    (import (pffi compat)))

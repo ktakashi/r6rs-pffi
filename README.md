@@ -39,3 +39,24 @@ TBD
 - Vicare (0.3d7)
 - Mosh (0.2.7)
 - Racket (plt-r6rs 6.1.1)
+- Guile (2.0.11)
+
+## Misc (Memo)
+
+### Why no Chez?
+
+I don't have Chez Scheme but Petite Chez Scheme. And Petite doesn't have
+FFI available (it's clearly said on the Manual).
+
+### Why no Ypsilon
+
+The latest released version of Ypsilon has very limited FFI interface.
+The biggest problem is `c-function` is defined as a macro which I think
+very limited.
+
+Trunk repository version has far more APIs but it's not released nor
+maintained. Thus it is hard for me to make portable layer for it.
+
+
+To support above non supported implementations, your pull request is
+the fastest way :)

@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; src/pffi/compat.mzscheme.sls - Compatible layer for Racket
+;;; src/pffi/compat.guile.sls - Compatible layer for Guile
 ;;;  
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -37,7 +37,6 @@
 (library (pffi compat)
     (export open-shared-object
 	    lookup-shared-object
-
 	    make-c-function
 	    make-c-callback
 	    free-c-callback
@@ -54,7 +53,7 @@
 	    int64_t uint64_t
 	    pointer callback
 	    void
-	    
+
 	    ;; pointer ref
 	    pointer-ref-c-uint8
 	    pointer-ref-c-int8
@@ -96,7 +95,8 @@
 	    pointer-set-c-float!
 	    pointer-set-c-double!
 	    pointer-set-c-pointer!
-
+	    
+	    ;; sizeof
 	    size-of-char
 	    size-of-short
 	    size-of-int
@@ -109,118 +109,119 @@
 	    size-of-int32_t
 	    size-of-int64_t
 
+	    ;; guile doesn't convert bytevector to pointer
 	    bytevector->pointer
 	    )
     (import (rnrs)
-	    (ffi unsafe)
-	    (rename (only (racket base) cons) (cons icons))
+	    (only (guile) dynamic-link dynamic-pointer)
+	    (system foreign)
 	    (only (srfi :13) string-index-right))
- 
-(define char           _sint8)
-(define unsigned-char  _uint8)
-(define short          _sshort)
-(define unsigned-short _ushort)
-(define int            _sint)
-(define unsigned-int   _uint)
-(define long           _slong)
-(define unsigned-long  _ulong)
-(define float          _float)
-(define double         _double)
-(define int8_t         _int8)
-(define uint8_t        _uint8)
-(define int16_t        _int16)
-(define uint16_t       _uint16)
-(define int32_t        _int32)
-(define uint32_t       _uint32)
-(define int64_t        _int64)
-(define uint64_t       _uint64)
-(define pointer        _pointer)
-
-;; for convenience
-(define int8         _int8)
-(define uint8        _uint8)
-(define int16        _int16)
-(define uint16       _uint16)
-(define int32        _int32)
-(define uint32       _uint32)
-(define int64        _int64)
-(define uint64       _uint64)
 
 (define-syntax callback
   (syntax-rules ()
-    ((_ ret (args ...))
-     (_cprocedure (->immutable-list (list args ...)) ret))))
-(define void           _void)
+    ((_ ignore ...) pointer)))
+(define char           int8)
+(define unsigned-char  uint8)
+;;(define short          int16)
+;;(define unsigned-short uint16)
+(define pointer        '*)
+(define int8_t         int8)
+(define uint8_t        uint8)
+(define int16_t        int16)
+(define uint16_t       uint16)
+(define int32_t        int32)
+(define uint32_t       uint32)
+(define int64_t        int64)
+(define uint64_t       uint64)
 
 (define (open-shared-object path)
   (let* ((index (string-index-right path #\.))
 	 (file (if index
 		   (substring path 0 index)
 		   path)))
-    (ffi-lib path)))
-
+    (dynamic-link path)))
 (define (lookup-shared-object lib name)
-  ;; this gets address of specified object which is exactly what
-  ;; we want to.
-  (ffi-obj-ref name lib))
+  (dynamic-pointer name lib))
 
-;; Fxxk!!!
-(define (->immutable-list p)
-  (let loop ((p p))
-    (cond ((null? p) p)
-	  ((pair? p) (icons (car p) (loop (cdr p))))
-	  (else p))))
-	
+(define (free-c-callback proc) #t) ;; for now.
 
-(define (make-c-function lib ret name arg-type)
-  ;; TODO failure thunk, what should we do when it couldn't be found
-  (get-ffi-obj (symbol->string name) lib 
-	       ;; DAMN YOU MORON!!!
-	       ;; seems this doesn't accept mutable pairs
-	       ;; so convert it.
-	       (_cprocedure (->immutable-list arg-type) ret)
-	       (lambda () (error 'make-c-function "not found" name))))
+(define (make-c-function lib ret name arg-types)
+  (pointer->procedure ret (lookup-shared-object lib (symbol->string name))
+		      arg-types))
 
-(define (make-c-callback ret args proc) proc)
-
-;; dummy
-(define (free-c-callback ignore) #t)
-
+(define (make-c-callback ret args proc)
+  (procedure->pointer ret proc args))
 
 (define-syntax define-deref
   (lambda (x)
     (define (gen-name t)
       (let ((s (symbol->string (syntax->datum t))))
-	(list (string->symbol (string-append "pointer-ref-c-" s))
+	(list (string->symbol (string-append "size-of-" s))
+	      (string->symbol (string-append "pointer-ref-c-" s))
 	      (string->symbol (string-append "pointer-set-c-" s "!")))))
     (syntax-case x ()
-      ((k type)
-       (with-syntax (((ref set!) (datum->syntax #'k (gen-name #'type))))
+      ((k type bv-ref bv-set!)
+       (with-syntax (((size ref set!) (datum->syntax #'k (gen-name #'type))))
 	 #'(begin
 	     (define (ref ptr offset)
-	       (ptr-ref ptr type offset))
+	       (let ((bv (pointer->bytevector ptr size)))
+		 (bv-ref bv offset (native-endianness))))
 	     (define (set! ptr offset value)
-	       (ptr-set! ptr type offset value))))))))
+	       (let ((bv (pointer->bytevector ptr size)))
+		 (bv-set! bv offset value (native-endianness))))))))))
+(define (bytevector-u8-ref/endian bv index endian)
+  (bytevector-u8-ref bv index))
+(define (bytevector-u8-set/endian! bv index v endian)
+  (bytevector-u8-set! bv v index))
+(define (bytevector-s8-ref/endian bv index endian)
+  (bytevector-s8-ref bv index))
+(define (bytevector-s8-set/endian! bv index v endian)
+  (bytevector-s8-set! bv v index))
 
-(define-deref char)
-(define-deref unsigned-char)
-(define-deref short)
-(define-deref unsigned-short)
-(define-deref int)
-(define-deref unsigned-int)
-(define-deref long)
-(define-deref unsigned-long)
-(define-deref float)
-(define-deref double)
-(define-deref int8)
-(define-deref uint8)
-(define-deref int16)
-(define-deref uint16)
-(define-deref int32)
-(define-deref uint32)
-(define-deref int64)
-(define-deref uint64)
-(define-deref pointer)
+;; kinda tricky
+(define (bytevector-long-ref bv index endian)
+  (if (= size-of-long 4)
+      (bytevector-s32-ref bv index endian)
+      (bytevector-s64-ref bv index endian)))
+(define (bytevector-long-set! bv index v endian)
+  (if (= size-of-long 4)
+      (bytevector-s32-set! bv index v endian)
+      (bytevector-s64-set! bv index v endian)))
+(define (bytevector-ulong-ref bv index endian)
+  (if (= size-of-long 4)
+      (bytevector-u32-ref bv index endian)
+      (bytevector-u64-ref bv index endian)))
+(define (bytevector-ulong-set! bv index v endian)
+  (if (= size-of-long 4)
+      (bytevector-u32-set! bv index v endian)
+      (bytevector-u64-set! bv index v endian)))
+
+
+(define-deref char bytevector-s8-ref/endian bytevector-s8-set/endian!)
+(define-deref unsigned-char bytevector-u8-ref/endian bytevector-u8-set/endian!)
+(define-deref short bytevector-s16-ref bytevector-s16-set!)
+(define-deref unsigned-short bytevector-u16-ref bytevector-u16-set!)
+(define-deref int bytevector-s32-ref bytevector-s32-set!)
+(define-deref unsigned-int bytevector-u32-ref bytevector-u32-set!)
+(define-deref long bytevector-long-ref bytevector-long-set!)
+(define-deref unsigned-long bytevector-ulong-ref bytevector-ulong-set!)
+(define-deref float bytevector-ieee-single-ref bytevector-ieee-single-set!)
+(define-deref double bytevector-ieee-double-ref bytevector-ieee-double-set!)
+(define-deref int8 bytevector-s8-ref/endian bytevector-s8-set/endian!)
+(define-deref uint8 bytevector-u8-ref/endian bytevector-u8-set/endian!)
+(define-deref int16 bytevector-s16-ref bytevector-s16-set!)
+(define-deref uint16 bytevector-u16-ref bytevector-u16-set!)
+(define-deref int32 bytevector-s32-ref bytevector-s32-set!)
+(define-deref uint32 bytevector-u32-ref bytevector-u32-set!)
+(define-deref int64 bytevector-s64-ref bytevector-s64-set!)
+(define-deref uint64 bytevector-u64-ref bytevector-u64-set!)
+;; TODO
+(define (pointer-ref-c-pointer ptr offset)
+  ;; 
+  #f)
+(define (pointer-set-c-pointer! ptr offset value)
+  ;; 
+  #f)
 
 (define-syntax define-sizeof
   (lambda (x)
@@ -230,8 +231,8 @@
     (syntax-case x ()
       ((k type)
        (with-syntax ((name (datum->syntax #'k (gen-name #'type))))
-	 #'(define name
-	     (ctype-sizeof type)))))))
+	 #'(define name (sizeof type)))))))
+
 (define-sizeof char)
 (define-sizeof short)
 (define-sizeof int)
@@ -243,9 +244,18 @@
 (define-sizeof int16_t)
 (define-sizeof int32_t)
 (define-sizeof int64_t)
-
-(define (bytevector->pointer bv . maybe-offset)
-  ;; TODO 
-  bv)
+;; for define-deref
+(define size-of-unsigned-char   size-of-char)
+(define size-of-unsigned-short  size-of-short)
+(define size-of-unsigned-int    size-of-int)
+(define size-of-unsigned-long   size-of-long)
+(define size-of-int8            size-of-int8_t)
+(define size-of-uint8           size-of-int8_t)
+(define size-of-int16           size-of-int16_t)
+(define size-of-uint16          size-of-int16_t)
+(define size-of-int32           size-of-int32_t)
+(define size-of-uint32          size-of-int32_t)
+(define size-of-int64           size-of-int64_t)
+(define size-of-uint64          size-of-int64_t)
 
 )
