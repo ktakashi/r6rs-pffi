@@ -62,15 +62,6 @@
 	    (rename (pointer-ref-c-sint32 pointer-ref-c-int32))
 	    pointer-ref-c-uint64
 	    (rename (pointer-ref-c-sint64 pointer-ref-c-int64))
-	    ;; should we define them?
-	    ;; pointer-ref-c-uint8_t
-	    ;; pointer-ref-c-int8_t	 
-	    ;; pointer-ref-c-uint16_t
-	    ;; pointer-ref-c-int16_t
-	    ;; pointer-ref-c-uint32_t
-	    ;; pointer-ref-c-int32_t
-	    ;; pointer-ref-c-uint64_t
-	    ;; pointer-ref-c-int64_t
 	    pointer-ref-c-unsigned-char
 	    (rename (pointer-ref-c-signed-char pointer-ref-c-char))
 	    pointer-ref-c-unsigned-short
@@ -91,7 +82,7 @@
 	    pointer-set-c-uint32!
 	    (rename (pointer-set-c-sint32! pointer-set-c-int32!))
 	    pointer-set-c-uint64!
-	    (rename (pointer-set-c-sint64! pointer-set-c-int32!))
+	    (rename (pointer-set-c-sint64! pointer-set-c-int64!))
 	    pointer-set-c-unsigned-char!
 	    (rename (pointer-set-c-signed-char! pointer-set-c-char!))
 	    pointer-set-c-unsigned-short!

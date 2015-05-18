@@ -20,4 +20,12 @@ int get_externed_variable()
   return externed_variable;
 }
 
+void fill_one(int *arr, int size)
+{
+  int i;
+  for (i = 0; i < size; i++) {
+    arr[i] = 1;
+  }  
+}
+
 /* TODO more */

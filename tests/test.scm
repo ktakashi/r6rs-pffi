@@ -34,4 +34,9 @@
   (test-equal "foreign-variable (3)" 11
 	      ((foreign-procedure test-lib int get_externed_variable ()))))
 
+(let ((bv (make-bytevector (* 4 5))))
+  ((foreign-procedure test-lib void fill_one (pointer int)) bv 10)
+  (test-equal "passing bytevector"
+	      '(1 1 1 1 1) (bytevector->uint-list bv (native-endianness) 4)))
+
 (test-end)
