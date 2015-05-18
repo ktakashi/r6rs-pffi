@@ -146,8 +146,9 @@
     (ffi-lib path)))
 
 (define (lookup-shared-object lib name)
-  ;; returning pointer is enough for now.
-  (get-ffi-obj name lib _pointer))
+  ;; this gets address of specified object which is exactly what
+  ;; we want to.
+  (ffi-obj-ref name lib))
 
 ;; Fxxk!!!
 (define (->immutable-list p)
