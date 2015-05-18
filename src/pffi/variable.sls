@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!r6rs
 (library (pffi variable)
   (export define-foreign-variable
 	  ;; TODO should we export them from here?
