@@ -104,7 +104,27 @@ Above types are all variable except `callback`. Callback is a procedure
 which is called from foreign world to Scheme world. Thus it may need to 
 have foreign types. 
 
-#### Pointer mutations
+### Pointer operations
+
+#### [Procedure] `bytevector->pointer` _bv_
+
+Converts given bytevector _bv_ to implementation dependent pointer object.
+
+#### [Procedure] `pointer->bytevector` _p_ _len_
+
+Converts given pointer to bytevector whose length is _len_ and elements are
+derefered values of the pointer _p_.
+
+#### [Procedure] `integer->pointer` _i_
+
+Converts given integer _i_ to a pointer object. The given integer _i_ is
+the address of returning pointer.
+
+#### [Procedure] `pointer->integer` _p_
+
+Converts given pointer _p_ to an integer. The returning integer represents
+the address of the pointer _p_.
+
 
 TBD
 
@@ -116,6 +136,30 @@ TBD
 - Mosh (0.2.7 only NMosh)
 - Racket (plt-r6rs 6.1.1)
 - Guile (2.0.11)
+
+
+## Limitation per implementations
+
+### Mosh
+
+Mosh has 2 flavours of macro expansion style, psyntax and SRFI-72. The
+first one doesn't expose `bytevector-pointer` so currently this library
+can't support it. Only SRFI-72 flavoured one, called NMosh, is supported.
+
+### Sagittarius
+
+32 bit version of Sagittarius (0.6.4) has a bug on `uinteger->bytevector`.
+So if a pointer address is greater than 0x7FFFFFFF, then it doesn't work
+properly.
+
+### Vicare
+
+Vicare doesn't have conversion procedures which converts bytevector to
+pointer whose data is shared with given bytevector's elements. So a pointer
+converted by the procedure `bytevector->pointer` needs to be converted
+back to a bytevector to get result if foreign procedures updates the pointer.
+
+
 
 ## Misc (Memo)
 
