@@ -149,7 +149,7 @@
 	       ;; TODO sub struct
 	       (define (pred o) 
 		 (and (bytevector? o) 
-		      (= (bytevector-length o) sizeof)))
+		      (>= (bytevector-length o) sizeof)))
 	       ;; TODO handle protocol
 	       (define (ctr) (make-bytevector sizeof 0))
 	       (define ref

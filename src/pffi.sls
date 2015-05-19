@@ -113,9 +113,14 @@
 	    pointer->bytevector
 	    pointer->integer
 	    integer->pointer
+
+	    ;; struct
+	    define-foreign-struct
+	    
 	    )
     (import (pffi procedure)
 	    (pffi variable)
-	    (pffi pointers))
+	    (pffi pointers)
+	    (pffi struct))
 
 )

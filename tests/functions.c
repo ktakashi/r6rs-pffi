@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <stdio.h>
+
 /*  
     test C functions.
  */
@@ -27,5 +30,32 @@ void fill_one(int *arr, int size)
     arr[i] = 1;
   }  
 }
+
+struct st1
+{
+  int count;
+  int *elements;
+};
+struct st2
+{
+  struct st1 p;
+  short attr;
+};
+
+void fill_st_values(struct st2 *st)
+{
+  int i;
+  st->p.count = 10;
+  st->p.elements = (void *)malloc(sizeof(void *) * 10);
+  fprintf(stderr, "%p\n", st->p.elements);
+  for (i = 0; i < 10; i++) st->p.elements[i] = i;
+  st->attr = 5;
+}
+
+void free_st_values(struct st2 *st)
+{
+  free(st->p.elements);
+}
+
 
 /* TODO more */

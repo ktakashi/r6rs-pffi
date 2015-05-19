@@ -121,7 +121,7 @@
 	    bytevector->pointer
 	    pointer->bytevector
 	    pointer->integer
-	    integer->pointer
+	    (rename (uinteger->pointer integer->pointer))
 	    )
     (import (rnrs)
 	    (rename (sagittarius ffi) (callback %callback))

@@ -54,5 +54,31 @@
 (test-equal "size-of-int32_t" 4 size-of-int32_t)
 (test-equal "size-of-int64_t" 8 size-of-int64_t)
 
+;; TODO this might be changed
+(let ()
+  (define-foreign-struct st-parent
+    (fields (int count)
+	    (pointer elements)))
+  (define-foreign-struct st-child
+    (fields (short attr))
+    (parent st-parent))
+  (test-assert "struct ctr" (make-st-child))
+  (let ((st (make-st-child)))
+    (test-assert "predicate (child)" (st-child? st))
+    (test-assert "predicate (parent)" (st-parent? st))
+    (test-assert "predicate (bv)" (bytevector? st))
+    ;; again this doesn't work on Vicare
+    ((foreign-procedure test-lib void fill_st_values (pointer))
+     (bytevector->pointer st))
+    (test-equal "count" 10 (st-parent-count st))
+    (test-assert "elements" (st-parent-elements st))
+    (let ((p (st-parent-elements st)))
+      (do ((i 0 (+ i 1))) ((= i 10) #t)
+	(test-equal "element" i
+		    (pointer-ref-c-int32 p (* i size-of-int32_t)))))
+    (test-equal "attr" 5 (st-child-attr st))
+    ((foreign-procedure test-lib void free_st_values (pointer))
+     (bytevector->pointer st))))
+
 
 (test-end)
