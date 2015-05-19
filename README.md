@@ -113,7 +113,7 @@ TBD
 
 - Sagittarius (0.6.4)
 - Vicare (0.3d7)
-- Mosh (0.2.7)
+- Mosh (0.2.7 only NMosh)
 - Racket (plt-r6rs 6.1.1)
 - Guile (2.0.11)
 

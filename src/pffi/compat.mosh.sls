@@ -111,9 +111,14 @@
 	    size-of-int64_t
 
 	    bytevector->pointer
+	    pointer->bytevector
+	    pointer->integer
+	    integer->pointer
 	    )
     (import (rnrs)
-	    (rename (mosh ffi) (lookup-shared-library %lookup-shared-library)))
+	    (rename (mosh ffi) (lookup-shared-library %lookup-shared-library))
+	    (rename (pffi bv-pointer) 
+		    (bytevector->pointer %bytevector->pointer)))
 
 (define char           'char)
 (define unsigned-char  'unsigned-char)
@@ -149,8 +154,15 @@
 (define size-of-int64_t 8)
 
 (define (bytevector->pointer bv . maybe-offset)
-  ;; There is no possibility to do this on Mosh.
-  ;; so offset will always be ignored.
-  bv)
+  ;; offset will always be ignored.
+  (%bytevector->pointer bv))
+
+(define (pointer->bytevector p len . maybe-offset)
+  ;; this is not what I want but no way to do on Mosh
+  ;; we want shared bytevector
+  (let ((offset (if (null? maybe-offset) 0 (car maybe-offset))))
+    (do ((bv (make-bytevector len)) (i 0 (+ i 1)))
+	((= i len) bv)
+      (bytevector-u8-set! bv (+ i 1) (pointer-ref-c-uint8 p (+ i offset))))))
 
 )

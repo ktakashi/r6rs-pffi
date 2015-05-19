@@ -110,9 +110,13 @@
 	    size-of-int64_t
 
 	    bytevector->pointer
+	    pointer->bytevector
+	    pointer->integer
+	    integer->pointer
 	    )
     (import (rnrs)
 	    (ffi unsafe)
+	    (ffi vector)
 	    (rename (only (racket base) cons) (cons icons))
 	    (only (srfi :13) string-index-right))
  
@@ -245,7 +249,19 @@
 (define-sizeof int64_t)
 
 (define (bytevector->pointer bv . maybe-offset)
-  ;; TODO 
-  bv)
+  ;; seems not offset is possible
+  (u8vector->cpointer bv))
+
+(define (pointer->bytevector p len . maybe-offset)
+  ;; ignore offset
+  (make-sized-byte-string p len))
+
+;; assume it's _gcpointer...
+(define (pointer->integer p)
+  (cast p _gcpointer (if (= size-of-pointer 8) _uint64 _uint32)))
+
+(define (integer->pointer i)
+  (cast i (if (= size-of-pointer 8) _uint64 _uint32) _gcpointer))
+
 
 )

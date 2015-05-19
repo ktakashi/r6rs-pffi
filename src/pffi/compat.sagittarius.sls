@@ -118,8 +118,10 @@
 	    size-of-int32_t
 	    size-of-int64_t
 
-	    ;; for compatibility of guile
 	    bytevector->pointer
+	    pointer->bytevector
+	    pointer->integer
+	    integer->pointer
 	    )
     (import (rnrs)
 	    (rename (sagittarius ffi) (callback %callback))

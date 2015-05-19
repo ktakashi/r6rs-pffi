@@ -109,8 +109,10 @@
 	    ;; variable
 	    define-foreign-variable
 	    
-	    ;; for guile
 	    bytevector->pointer
+	    pointer->bytevector
+	    pointer->integer
+	    integer->pointer
 	    )
     (import (pffi procedure)
 	    (pffi variable)

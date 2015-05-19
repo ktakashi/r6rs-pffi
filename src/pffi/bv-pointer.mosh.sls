@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; src/pffi/pointers.sls - Pointer operations
+;;; src/pffi/bv-pointer.nmosh.sls - Compatible layer of compatible layer
 ;;;  
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -30,50 +30,11 @@
 
 #!r6rs
 
-(library (pffi pointers)
-    (export bytevector->pointer
-	    pointer->bytevector
-	    pointer->integer
-	    integer->pointer
-	    ;; pointer ref
-	    pointer-ref-c-uint8
-	    pointer-ref-c-int8
-	    pointer-ref-c-uint16
-	    pointer-ref-c-int16
-	    pointer-ref-c-uint32
-	    pointer-ref-c-int32
-	    pointer-ref-c-uint64
-	    pointer-ref-c-int64
-	    pointer-ref-c-unsigned-char
-	    pointer-ref-c-char
-	    pointer-ref-c-unsigned-short
-	    pointer-ref-c-short
-	    pointer-ref-c-unsigned-int
-	    pointer-ref-c-int
-	    pointer-ref-c-unsigned-long
-	    pointer-ref-c-long
-	    pointer-ref-c-float
-	    pointer-ref-c-double
-	    pointer-ref-c-pointer
+;; for Psyntax Mosh, we just raise an error, sorry
+(library (pffi bv-pointer)
+    (export bytevector->pointer)
+    (import (rnrs))
 
-	    ;; pointer set
-	    pointer-set-c-uint8!
-	    pointer-set-c-int8!
-	    pointer-set-c-uint16!
-	    pointer-set-c-int16!
-	    pointer-set-c-uint32!
-	    pointer-set-c-int32!
-	    pointer-set-c-uint64!
-	    pointer-set-c-int64!
-	    pointer-set-c-unsigned-char!
-	    pointer-set-c-char!
-	    pointer-set-c-unsigned-short!
-	    pointer-set-c-short!
-	    pointer-set-c-unsigned-int!
-	    pointer-set-c-int!
-	    pointer-set-c-unsigned-long!
-	    pointer-set-c-long!
-	    pointer-set-c-float!
-	    pointer-set-c-double!
-	    pointer-set-c-pointer!)
-    (import (pffi compat)))
+(define (bytevector->pointer . ignore)
+  (assertion-violation 'bytevector->pointer "not supported on Psyntax Mosh"))
+)

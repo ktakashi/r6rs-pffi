@@ -28,7 +28,7 @@ vicare: prepare
 
 # Seems Mosh as well
 mosh: prepare
-	LD_LIBRARY_PATH=$(LDPATH):tests; mosh --loadpath=src tests/test.scm
+	LD_LIBRARY_PATH=$(LDPATH):tests; nmosh --loadpath=src tests/test.scm
 
 racket: prepare
 	LD_LIBRARY_PATH=$(LDPATH):tests; plt-r6rs ++path ./src tests/test.scm

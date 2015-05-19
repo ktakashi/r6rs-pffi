@@ -110,6 +110,9 @@
 	    size-of-int64_t
 
 	    bytevector->pointer
+	    pointer->bytevector
+	    pointer->integer
+	    integer->pointer
 	    )
     (import (rnrs)
 	    (vicare ffi)
@@ -157,7 +160,13 @@
 (define size-of-int64_t 8)
 
 (define (bytevector->pointer bv . maybe-offset)
-  ;; For now
-  bv)
+  ;; unfortunately, there is no procedure which can make a pointer
+  ;; whose value is shared by the given bytevector on Vicare.
+  (let-values (((p size) (bytevector->memory bv)))
+    p))
+
+(define (pointer->bytevector p len . maybe-offset)
+  ;; I'm not sure if there's a way to pass offset so for now ignore
+  (memory->bytevector p len))
 
 )

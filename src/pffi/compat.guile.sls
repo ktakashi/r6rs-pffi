@@ -109,8 +109,10 @@
 	    size-of-int32_t
 	    size-of-int64_t
 
-	    ;; guile doesn't convert bytevector to pointer
 	    bytevector->pointer
+	    pointer->bytevector
+	    (rename (pointer-address pointer->integer)
+		    (make-pointer integer->pointer))
 	    )
     (import (rnrs)
 	    (only (guile) dynamic-link dynamic-pointer)
