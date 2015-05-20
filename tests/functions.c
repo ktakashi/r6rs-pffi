@@ -15,6 +15,12 @@ int callback_proc(int (*f)(int), int n)
   return f(n);
 }
 
+int callback_proc2(int (*f)(int *), int n)
+{
+  return f(&n);
+}
+
+
 extern int externed_variable;
 int externed_variable = 10;
 

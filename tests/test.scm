@@ -7,6 +7,10 @@
 
 (define test-lib (open-shared-object "functions.so"))
 
+(define (print . args)
+  (for-each display args) (newline)
+  (flush-output-port (current-output-port)))
+
 ;; there is no particular type for this, yet
 ;; TODO should we make 'shared-object?' or so?
 (test-assert "shared object" test-lib)
@@ -19,13 +23,19 @@
 (test-equal "plus" 2
 	    ((foreign-procedure test-lib int plus (int int)) 1 1))
 
-(define callback-proc
-  (foreign-procedure test-lib int callback_proc ((callback int (int)) int)))
-
 (let ((proc (c-callback int ((int i)) (lambda (i) (* i i)))))
+  (define callback-proc
+    (foreign-procedure test-lib int callback_proc ((callback int (int)) int)))
   (test-equal "callback" 4 (callback-proc proc 2))
   (test-assert "free" (free-c-callback proc)))
 
+(let ((proc (c-callback int ((pointer p)) 
+			(lambda (p) 
+			  (pointer-ref-c-int32 p 0)))))
+  (define callback-proc
+    (foreign-procedure test-lib int callback_proc2 ((callback int (int)) int)))
+  (test-equal "callback (2)" 2 (callback-proc proc 2))
+  (test-assert "free" (free-c-callback proc)))
 
 (let ()
   (define-foreign-variable test-lib int externed_variable)
@@ -70,7 +80,9 @@
   (define-syntax test-pointer-ref
     (syntax-rules ()
       ((_ p-ref bv-ref)
-       (test-equal 'p-ref (bv-ref bv 1 (native-endianness)) (p-ref p 1)))))
+       (begin
+	 (print "here: " (p-ref p 1))
+       (test-equal 'p-ref (bv-ref bv 1 (native-endianness)) (p-ref p 1))))))
 
   (test-pointer-ref pointer-ref-c-int8 bytevector-s8-ref/endian)
   (test-pointer-ref pointer-ref-c-uint8 bytevector-u8-ref/endian)
@@ -105,15 +117,8 @@
     (test-assert "predicate (parent)" (st-parent? st))
     (test-assert "predicate (bv)" (bytevector? st))
     (test-equal "size" size-of-st-child (bytevector-length st))
-    ;; again this doesn't work on Vicare
-    #;
     ((foreign-procedure test-lib void fill_st_values (pointer))
      (bytevector->pointer st))
-    ;; kinda awkward to make it work
-    (let ((p (bytevector->pointer st)))
-      (flush-output-port (current-output-port))
-      ((foreign-procedure test-lib void fill_st_values (pointer)) p)
-      (set! st (pointer->bytevector p size-of-st-child)))
     (test-equal "count" 10 (st-parent-count st))
     (test-assert "elements" (st-parent-elements st))
     (let ((p (st-parent-elements st)))
