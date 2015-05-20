@@ -109,6 +109,7 @@
 	    ;; variable
 	    define-foreign-variable
 	    
+	    pointer?
 	    bytevector->pointer
 	    pointer->bytevector
 	    pointer->integer

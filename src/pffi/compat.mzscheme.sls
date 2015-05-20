@@ -109,6 +109,7 @@
 	    size-of-int32_t
 	    size-of-int64_t
 
+	    (rename (cpointer? pointer?))
 	    bytevector->pointer
 	    pointer->bytevector
 	    pointer->integer

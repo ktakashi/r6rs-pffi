@@ -33,7 +33,8 @@
 			(lambda (p) 
 			  (pointer-ref-c-int32 p 0)))))
   (define callback-proc
-    (foreign-procedure test-lib int callback_proc2 ((callback int (int)) int)))
+    (foreign-procedure test-lib int callback_proc2 
+		       ((callback int (pointer)) int)))
   (test-equal "callback (2)" 2 (callback-proc proc 2))
   (test-assert "free" (free-c-callback proc)))
 
@@ -82,6 +83,7 @@
       ((_ p-ref bv-ref)
        (test-equal 'p-ref (bv-ref bv 1 (native-endianness)) (p-ref p 1)))))
 
+  (test-assert "pointer?" (pointer? p))
   (test-pointer-ref pointer-ref-c-int8 bytevector-s8-ref/endian)
   (test-pointer-ref pointer-ref-c-uint8 bytevector-u8-ref/endian)
   (test-pointer-ref pointer-ref-c-int16 bytevector-s16-ref)

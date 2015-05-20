@@ -31,7 +31,8 @@
 #!r6rs
 
 (library (pffi pointers)
-    (export bytevector->pointer
+    (export pointer?
+bytevector->pointer
 	    pointer->bytevector
 	    pointer->integer
 	    integer->pointer
