@@ -32,7 +32,6 @@
   (test-equal "foreign-variable" 10 externed-variable)
   (test-assert "set! foreign-variable" (set! externed-variable 11))
   (test-equal "foreign-variable (2)" 11 externed-variable)
-  (display externed-variable) (newline)
   (test-equal "foreign-variable (3)" 11
 	      ((foreign-procedure test-lib int get_externed_variable ()))))
 
