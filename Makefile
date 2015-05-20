@@ -15,7 +15,7 @@ all:
 #	echo '  ypsilon'
 
 prepare:
-	cd tests; gcc $(CFLAGS) -shared -o functions.so functions.c
+	cd tests; gcc $(CFLAGS) -shared -Wall -o functions.so functions.c
 
 test: sagittarius mosh vicare racket guile
 

@@ -42,13 +42,13 @@ struct st2
   short attr;
 };
 
-#include <stddef.h>
+
 void fill_st_values(struct st2 *st)
 {
   int i;
   st->p.count = 10;
-  st->p.elements = (void *)malloc(sizeof(void *) * 10);
-  fprintf(stderr, "%p:%lu\n", st->p.elements, offsetof(struct st1, elements));
+  st->p.elements = (int *)malloc(sizeof(int) * 10);
+  /* fprintf(stderr, "%p:%lu\n", st->p.elements, offsetof(struct st1, elements)); */
   for (i = 0; i < 10; i++) st->p.elements[i] = i;
   st->attr = 5;
 }

@@ -217,13 +217,19 @@
 (define-deref uint32 bytevector-u32-ref bytevector-u32-set!)
 (define-deref int64 bytevector-s64-ref bytevector-s64-set!)
 (define-deref uint64 bytevector-u64-ref bytevector-u64-set!)
-;; TODO
-(define (pointer-ref-c-pointer ptr offset)
-  ;; 
-  #f)
-(define (pointer-set-c-pointer! ptr offset value)
-  ;; 
-  #f)
+
+(define (bytevector-pointer-ref bv index endian)
+  (make-pointer
+   (if (= size-of-pointer 4)
+       (bytevector-u32-ref bv index endian)
+       (bytevector-u64-ref bv index endian))))
+(define (bytevector-pointer-set! bv index v endian)
+  (let ((i (pointer-address v)))
+    (if (= size-of-pointer 4)
+	(bytevector-u32-set! bv index i endian)
+	(bytevector-u64-set! bv index i endian))))
+(define-deref pointer bytevector-pointer-ref bytevector-pointer-set!)
+
 
 (define-syntax define-sizeof
   (lambda (x)

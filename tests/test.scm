@@ -54,7 +54,45 @@
 (test-equal "size-of-int32_t" 4 size-of-int32_t)
 (test-equal "size-of-int64_t" 8 size-of-int64_t)
 
+;; pointer operations
+(let* ((bv (u8-list->bytevector '(0 1 2 3 4 5 6 7 8 9 0)))
+       (p (bytevector->pointer bv)))
+  ;; for convenience
+  (define (bytevector-u8-ref/endian bv index endian)
+    (bytevector-u8-ref bv index))
+  (define (bytevector-u8-set/endian! bv index v endian)
+    (bytevector-u8-set! bv v index))
+  (define (bytevector-s8-ref/endian bv index endian)
+    (bytevector-s8-ref bv index))
+  (define (bytevector-s8-set/endian! bv index v endian)
+    (bytevector-s8-set! bv v index))
+
+  (define-syntax test-pointer-ref
+    (syntax-rules ()
+      ((_ p-ref bv-ref)
+       (test-equal 'p-ref (bv-ref bv 1 (native-endianness)) (p-ref p 1)))))
+
+  (test-pointer-ref pointer-ref-c-int8 bytevector-s8-ref/endian)
+  (test-pointer-ref pointer-ref-c-uint8 bytevector-u8-ref/endian)
+  (test-pointer-ref pointer-ref-c-int16 bytevector-s16-ref)
+  (test-pointer-ref pointer-ref-c-uint16 bytevector-u16-ref)
+  (test-pointer-ref pointer-ref-c-int32 bytevector-s32-ref)
+  (test-pointer-ref pointer-ref-c-uint32 bytevector-u32-ref)
+  (test-pointer-ref pointer-ref-c-int64 bytevector-s64-ref)
+  (test-pointer-ref pointer-ref-c-uint64 bytevector-u64-ref)
+  (test-pointer-ref pointer-ref-c-float bytevector-ieee-single-ref)
+  (test-pointer-ref pointer-ref-c-double bytevector-ieee-double-ref)
+  (test-equal "pointer-ref-c-pointer"
+	      (if (= size-of-pointer 8)
+		  (bytevector-u64-ref bv 1 (native-endianness))
+		  (bytevector-u32-ref bv 1 (native-endianness)))
+	      (pointer->integer (pointer-ref-c-pointer p 1)))
+
+  ;; TODO pointer-set! tests
+)
+
 ;; TODO this might be changed
+
 (let ()
   (define-foreign-struct st-parent
     (fields (int count)
@@ -68,12 +106,17 @@
     (test-assert "predicate (parent)" (st-parent? st))
     (test-assert "predicate (bv)" (bytevector? st))
     ;; again this doesn't work on Vicare
+    #;
     ((foreign-procedure test-lib void fill_st_values (pointer))
      (bytevector->pointer st))
+    ;; kinda awkward to make it work
+    (let ((p (bytevector->pointer st)))
+      (flush-output-port (current-output-port))
+      ((foreign-procedure test-lib void fill_st_values (pointer)) p)
+      (set! st (pointer->bytevector p size-of-st-child)))
     (test-equal "count" 10 (st-parent-count st))
     (test-assert "elements" (st-parent-elements st))
     (let ((p (st-parent-elements st)))
-      (display p) (newline)
       (do ((i 0 (+ i 1))) ((= i 10) #t)
 	(test-equal "element" i (pointer-ref-c-int32 p (* i size-of-int32_t)))))
     (test-equal "attr" 5 (st-child-attr st))
