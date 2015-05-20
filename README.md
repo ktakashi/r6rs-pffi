@@ -101,10 +101,14 @@ the difference. Currently following types are supported.
 - `callback`
 
 Above types are all variable except `callback`. Callback is a procedure
-which is called from foreign world to Scheme world. Thus it may need to 
-have foreign types. 
+which is called from foreign world to Scheme world. Thus it may need to
+have foreign types.
 
 ### Pointer operations
+
+#### [Procedure] `pointer?` _o_
+
+Returns #t if given _o_ is a pointer object.
 
 #### [Procedure] `bytevector->pointer` _bv_
 
@@ -125,6 +129,42 @@ the address of returning pointer.
 Converts given pointer _p_ to an integer. The returning integer represents
 the address of the pointer _p_.
 
+
+#### [Procedure] `pointer-ref-c-${type}` _p_ _offset_
+
+_${type}_ must be one of the following types:
+
+- `uint8`
+- `int8`
+- `uint16`
+- `int16`
+- `uint32`
+- `int32`
+- `uint64`
+- `int64`
+- `unsigned-char`
+- `char`
+- `unsigned-short`
+- `short`
+- `unsigned-int`
+- `int`
+- `unsigned-long`
+- `long`
+- `float`
+- `double`
+- `pointer`
+
+Returns corresponding type value form give pointer _p_. The _offset_ is
+byte offset of the given _p_ not aligned value.
+
+#### [Procedure] `pointer-set-c-${type}!` _p_ _offset_ _value_
+
+`${type}` must be the same as `pointer-ref-c-${type}`.
+
+Sets given _value_ which is converted to corresponding type to pointer _p_
+on _offset_ location. _offset_ is byte offset of the given _p_.
+
+### Foreign structure
 
 TBD
 
