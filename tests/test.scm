@@ -80,9 +80,7 @@
   (define-syntax test-pointer-ref
     (syntax-rules ()
       ((_ p-ref bv-ref)
-       (begin
-	 (print "here: " (p-ref p 1))
-       (test-equal 'p-ref (bv-ref bv 1 (native-endianness)) (p-ref p 1))))))
+       (test-equal 'p-ref (bv-ref bv 1 (native-endianness)) (p-ref p 1)))))
 
   (test-pointer-ref pointer-ref-c-int8 bytevector-s8-ref/endian)
   (test-pointer-ref pointer-ref-c-uint8 bytevector-u8-ref/endian)
