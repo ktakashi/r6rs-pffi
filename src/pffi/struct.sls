@@ -39,7 +39,9 @@
 (library (pffi struct)
     (export define-foreign-struct)
     (import (rnrs)
-	    (pffi compat))
+	    (pffi compat)
+	    ;; should support this at least...
+	    (only (srfi :1) take drop split-at))
 
 ;; use fields, protocol and parent from (rnrs)
 ;; e.g.
@@ -131,6 +133,7 @@
 	   #'(begin 
 	       (define sizeof (compute-size parent 
 					    (list (cons type sizeofs) ...)))
+	       (define this-protocol protocol) 
 	       (define name 
 		 (let ()
 		   (hashtable-set! *struct-set!* 'name
@@ -142,16 +145,18 @@
 				       (bytevector-copy! o offset bv 0 sizeof)
 				       bv)))
 		   (make-foreign-struct-descriptor 
+		    'name
 		    sizeof
 		    (struct-alignment (list (cons type sizeofs) ...))
 		    (list (cons* 'field types sizeofs) ...)
-		    parent)))
+		    parent
+		    (if this-protocol #t #f))))
 	       ;; TODO sub struct
 	       (define (pred o) 
 		 (and (bytevector? o) 
 		      (>= (bytevector-length o) sizeof)))
 	       ;; TODO handle protocol
-	       (define (ctr) (make-bytevector sizeof 0))
+	       (define ctr (make-constructor name this-protocol))
 	       (define ref
 		 (let ((acc (type->ref 'type))
 		       (offset (compute-offset name 'field)))
@@ -161,13 +166,114 @@
 		 (let ((acc (type->set! 'type))
 		       (offset (compute-offset name 'field)))
 		   (lambda (o v) (acc o offset v))))
-	       ...))
-       ))
+	       ...
+	       ;; ugly...
+	       (define dummy 
+		 (begin
+		   (foreign-struct-descriptor-getters-set! name (list ref ...))
+		   (foreign-struct-descriptor-setters-set! name (list set ...))
+		   (foreign-struct-descriptor-ctr-set! name ctr)
+		   (foreign-struct-descriptor-protocol-set! name 
+		    (or this-protocol (default-protocol name)))))
+	       )
+	   )))
       ((k name specs ...)
        (identifier? #'name)
        (with-syntax (((ctr pred) (datum->syntax #'k (->ctr&pred #'name))))
 	 #'(k (name ctr pred) specs ...))))))
 
+
+(define (total-field-count desc)
+  (let loop ((desc desc) (r 0))
+    (if desc
+	(loop (foreign-struct-descriptor-parent desc)
+	      (+ (length (foreign-struct-descriptor-fields desc)) r))
+	r)))
+
+(define (make-struct desc field-values)
+  (define (set-parent-fields desc bv field-values)
+    (define (->ordered-paretns desc)
+      (let loop ((p (foreign-struct-descriptor-parent desc)) (r '()))
+	(if p
+	    (loop (foreign-struct-descriptor-parent p) (cons p r))
+	    (reverse r))))
+    (let loop ((parents (->ordered-paretns desc))
+	       (field-values field-values))
+      (if (null? parents)
+	  field-values
+	  (let* ((setters (foreign-struct-descriptor-setters (car parents)))
+		 (len (length setters)))
+	    (for-each (lambda (set arg) (set bv arg)) 
+		      setters (take field-values len))
+	    (loop (cdr parents) (drop field-values len))))))
+  (let ((setters (foreign-struct-descriptor-setters desc))
+	(bv (make-bytevector (foreign-struct-descriptor-size desc))))
+    (let ((field-values (set-parent-fields desc bv field-values)))
+      (for-each (lambda (set arg) (set bv arg)) setters field-values)
+      bv)))
+
+(define (make-simple-conser protocol desc argc)
+  (protocol
+   (lambda field-values
+     (if (= (length field-values) argc)
+	 (make-struct desc field-values)
+	 (assertion-violation "struct constructor"
+			      "wrong number of arguments"
+			      field-values)))))
+
+(define (make-nested-conser protocol odesc argc)
+  (protocol
+   ((let loop ((desc odesc))
+      (cond ((foreign-struct-descriptor-parent desc)
+	     => (lambda (parent)
+		  (lambda extra-field-values
+		    (lambda protocol-args
+		      (lambda this-field-values
+			(apply ((foreign-struct-descriptor-protocol parent)
+				(apply (loop parent)
+				       (append this-field-values
+					       extra-field-values)))
+			       protocol-args))))))
+	    (else
+	     (lambda extra-field-values
+	       (lambda this-field-values
+		 (let ((field-values (append this-field-values
+					     extra-field-values)))
+		   (if (= (length field-values) argc)
+		       (make-struct odesc field-values)
+		       (assertion-violation "struct constructor"
+					    "wrong number of arguments"
+					    field-values)))))))))))
+
+(define (default-protocol desc)
+  (let ((parent (foreign-struct-descriptor-parent desc)))
+    (if parent
+	(let ((parent-field-count (total-field-count parent)))
+	  (lambda (p)
+	    (lambda field-values
+	      (let-values (((parent-field-values this-field-values)
+			    (split-at field-values parent-field-count)))
+		(let ((n (apply p parent-field-values)))
+		  (apply n this-field-values))))))
+	(lambda (p)
+	  (lambda field-values
+	    (apply p field-values))))))
+
+;; TODO implement it properly...
+(define (make-constructor desc protocol)
+  (let ((parent? (foreign-struct-descriptor-parent desc))
+	(protocol (or protocol (default-protocol desc))))
+    (if parent?
+	;; check parent protocol
+	(begin
+	  (when (and (foreign-struct-descriptor-has-protocol? parent?)
+		     (not (foreign-struct-descriptor-has-protocol? desc)))
+	    (assertion-violation 'make-constructor 
+				 "parent has custom protocol" desc))
+	  (make-nested-conser protocol desc
+			      (total-field-count desc)))
+	(make-simple-conser protocol desc 
+			    (length (foreign-struct-descriptor-fields desc))))))
 
 (define (struct-alignment lis)
   (apply max (map (lambda (l)
@@ -265,10 +371,20 @@
 
 ;; descriptor for convenience
 (define-record-type foreign-struct-descriptor
-  (fields size
+  (fields name				; for debug
+	  size
 	  alignment
 	  fields
-	  parent))
+	  parent
+	  ;; these will be set after the construction...
+	  (mutable getters)
+	  (mutable setters)
+	  (mutable protocol)
+	  has-protocol?
+	  (mutable ctr))
+  (protocol (lambda (n)
+	      (lambda (nm s a f p p?)
+		(n nm s a f p #f #f #f p? #f)))))
 
 (define *struct-ref*
   (let ((ht (make-eq-hashtable)))
@@ -328,7 +444,10 @@
     (hashtable-set! ht 'uint64_t bytevector-u64-native-set!)
     (hashtable-set! ht 'pointer
 		    (lambda (o offset v)
-		      (let ((bv (pointer->bytevector v size-of-pointer)))
+		      (let ((bv (uint-list->bytevector 
+				 (list (pointer->integer v))
+				 (native-endianness)
+				 size-of-pointer)))
 			(bytevector-copy! bv 0 o offset size-of-pointer))))
     ht))
 

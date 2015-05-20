@@ -92,7 +92,6 @@
 )
 
 ;; TODO this might be changed
-
 (let ()
   (define-foreign-struct st-parent
     (fields (int count)
@@ -100,11 +99,12 @@
   (define-foreign-struct st-child
     (fields (short attr))
     (parent st-parent))
-  (test-assert "struct ctr" (make-st-child))
-  (let ((st (make-st-child)))
+  (test-assert "struct ctr" (make-st-child 0 (integer->pointer 0) 0))
+  (let ((st (make-st-child 0 (integer->pointer 0) 0)))
     (test-assert "predicate (child)" (st-child? st))
     (test-assert "predicate (parent)" (st-parent? st))
     (test-assert "predicate (bv)" (bytevector? st))
+    (test-equal "size" size-of-st-child (bytevector-length st))
     ;; again this doesn't work on Vicare
     #;
     ((foreign-procedure test-lib void fill_st_values (pointer))
@@ -122,6 +122,31 @@
     (test-equal "attr" 5 (st-child-attr st))
     ((foreign-procedure test-lib void free_st_values (pointer))
      (bytevector->pointer st))))
+
+;; protocol thing
+(let ()
+  (define-foreign-struct st-parent
+    (fields (int count)
+	    (pointer elements))
+    (protocol
+     (lambda (p)
+       (lambda (size)
+	 (p size (integer->pointer 0))))))
+  (define-foreign-struct st-child
+    (fields (short attr))
+    (parent st-parent)
+    (protocol
+     (lambda (n)
+       (lambda (size attr)
+	 ((n size) attr)))))
+  (test-assert "struct ctr" (make-st-child 0 0))
+  (let ((st (make-st-child 5 10)))
+    (test-assert "predicate (child)" (st-child? st))
+    (test-assert "predicate (parent)" (st-parent? st))
+    (test-assert "predicate (bv)" (bytevector? st))
+    (test-equal "parent-slot" 5 (st-parent-count st))
+    (test-equal "this-slot" 10 (st-child-attr st))
+    ))
 
 
 (test-end)
