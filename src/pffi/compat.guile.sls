@@ -166,10 +166,10 @@
        (with-syntax (((size ref set!) (datum->syntax #'k (gen-name #'type))))
 	 #'(begin
 	     (define (ref ptr offset)
-	       (let ((bv (pointer->bytevector ptr size)))
+	       (let ((bv (pointer->bytevector ptr (+ size offset))))
 		 (bv-ref bv offset (native-endianness))))
 	     (define (set! ptr offset value)
-	       (let ((bv (pointer->bytevector ptr size)))
+	       (let ((bv (pointer->bytevector ptr (+ size offset))))
 		 (bv-set! bv offset value (native-endianness))))))))))
 (define (bytevector-u8-ref/endian bv index endian)
   (bytevector-u8-ref bv index))

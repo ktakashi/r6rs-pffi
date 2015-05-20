@@ -66,11 +66,11 @@
 	    pointer-ref-c-unsigned-char
 	    (rename (pointer-ref-c-signed-char pointer-ref-c-char))
 	    pointer-ref-c-unsigned-short
-	    (rename (pointer-ref-c-signed-short pointer-ref-c-short))
+	    pointer-ref-c-short
 	    pointer-ref-c-unsigned-int
-	    (rename (pointer-ref-c-signed-int pointer-ref-c-int))
+	    pointer-ref-c-int
 	    pointer-ref-c-unsigned-long
-	    (rename (pointer-ref-c-signed-long pointer-ref-c-long))
+	    pointer-ref-c-long
 	    pointer-ref-c-float
 	    pointer-ref-c-double
 	    pointer-ref-c-pointer
@@ -88,11 +88,11 @@
 	    ;; well we don't make effort
 	    (rename (pointer-set-c-char! pointer-set-c-unsigned-char!))
 	    pointer-set-c-char!
-	    (rename (pointer-set-c-short! pointer-set-c-unsigned-short!))
+	    pointer-set-c-unsigned-short!
 	    pointer-set-c-short!
-	    (rename (pointer-set-c-int! pointer-set-c-unsigned-int!))
+	    pointer-set-c-unsigned-int!
 	    pointer-set-c-int!
-	    (rename (pointer-set-c-long! pointer-set-c-unsigned-long!))
+	    pointer-set-c-unsigned-long!
 	    pointer-set-c-long!
 	    pointer-set-c-float!
 	    pointer-set-c-double!
@@ -116,7 +116,36 @@
 	    integer->pointer
 	    )
     (import (rnrs)
-	    (rename (mosh ffi) (lookup-shared-library %lookup-shared-library))
+	    (rename (except (mosh ffi) 
+			    ;; Seems mosh computes offset as multiple of
+			    ;; sizeof(type). this I think inconvenient.
+			    pointer-ref-c-uint16
+			    pointer-ref-c-int16
+			    pointer-ref-c-uint32
+			    pointer-ref-c-int32
+			    pointer-ref-c-uint64
+			    pointer-ref-c-int64
+			    pointer-ref-c-unsigned-short
+			    pointer-ref-c-unsigned-int
+			    pointer-ref-c-unsigned-long
+			    pointer-ref-c-float
+			    pointer-ref-c-double
+			    pointer-ref-c-pointer
+			    pointer-set-c-uint16!
+			    pointer-set-c-int16!
+			    pointer-set-c-uint32!
+			    pointer-set-c-int32!
+			    pointer-set-c-uint64!
+			    pointer-set-c-int64!
+			    pointer-set-c-short!
+			    pointer-set-c-int!
+			    pointer-set-c-long!
+			    ;;pointer-set-c-unsigned-int!
+			    ;;pointer-set-c-unsigned-long!
+			    pointer-set-c-float!
+			    pointer-set-c-double!
+			    pointer-set-c-pointer!)
+		    (lookup-shared-library %lookup-shared-library))
 	    (rename (pffi bv-pointer) 
 		    (bytevector->pointer %bytevector->pointer)))
 
@@ -153,6 +182,13 @@
 (define size-of-int32_t 4)
 (define size-of-int64_t 8)
 
+(define size-of-int16           size-of-int16_t)
+(define size-of-uint16          size-of-int16_t)
+(define size-of-int32           size-of-int32_t)
+(define size-of-uint32          size-of-int32_t)
+(define size-of-int64           size-of-int64_t)
+(define size-of-uint64          size-of-int64_t)
+
 (define (bytevector->pointer bv . maybe-offset)
   ;; offset will always be ignored.
   (%bytevector->pointer bv))
@@ -163,6 +199,95 @@
   (let ((offset (if (null? maybe-offset) 0 (car maybe-offset))))
     (do ((bv (make-bytevector len)) (i 0 (+ i 1)))
 	((= i len) bv)
-      (bytevector-u8-set! bv (+ i 1) (pointer-ref-c-uint8 p (+ i offset))))))
+      (bytevector-u8-set! bv i (pointer-ref-c-uint8 p (+ i offset))))))
+
+(define-syntax define-deref
+  (lambda (x)
+    (define (gen-name t)
+      (let ((s (symbol->string (syntax->datum t))))
+	(list (string->symbol (string-append "size-of-" s))
+	      (string->symbol (string-append "pointer-ref-c-" s))
+	      (string->symbol (string-append "pointer-set-c-" s "!")))))
+    (syntax-case x ()
+      ((k type bv-ref ->bv)
+       (with-syntax (((size ref set!) (datum->syntax #'k (gen-name #'type))))
+	 #'(begin
+	     (define (ref ptr offset)
+	       (let ((bv (make-bytevector size)))
+		 (do ((i 0 (+ i 1))) 
+		     ((= i size) (bv-ref bv 0 (native-endianness)))
+		   (bytevector-u8-set! bv i 
+		       (pointer-ref-c-uint8 ptr (+ i offset))))))
+	     (define (set! ptr offset value)
+	       (let ((bv (->bv value)))
+		 (do ((len (bytevector-length bv))
+		      (i 0 (+ i 1)))
+		     ((= i len))
+		   (pointer-set-c-uint8! ptr (+ i offset)
+					 (bytevector-u8-ref bv i)))))))))))
+
+;; kinda tricky
+(define (bytevector-long-ref bv index endian)
+  (if (= size-of-long 4)
+      (bytevector-s32-ref bv index endian)
+      (bytevector-s64-ref bv index endian)))
+(define (bytevector-ulong-ref bv index endian)
+  (if (= size-of-long 4)
+      (bytevector-u32-ref bv index endian)
+      (bytevector-u64-ref bv index endian)))
+(define (bytevector-pointer-ref bv index endian)
+  (integer->pointer
+   (if (= size-of-pointer 4)
+       (bytevector-u32-ref bv index endian)
+       (bytevector-u64-ref bv index endian))))
+
+(define-syntax define-uint->bv
+  (syntax-rules ()
+    ((_ name size)
+     (define (name u)
+       (uint-list->bytevector (list u) (native-endianness) size)))))
+(define-syntax define-sint->bv
+  (syntax-rules ()
+    ((_ name size)
+     (define (name s)
+       (sint-list->bytevector (list s) (native-endianness) size)))))
+(define-uint->bv u16->bv 2)
+(define-uint->bv u32->bv 4)
+(define-uint->bv u64->bv 8)
+(define-sint->bv s16->bv 2)
+(define-sint->bv s32->bv 4)
+(define-sint->bv s64->bv 8)
+(define-sint->bv long->bv size-of-long)
+(define-sint->bv ulong->bv size-of-long)
+
+(define (float->bv f)
+  (let ((bv (make-bytevector 4)))
+    (bytevector-ieee-single-native-set! bv 0 f)
+    bv))
+(define (double->bv f)
+  (let ((bv (make-bytevector 8)))
+    (bytevector-ieee-double-native-set! bv 0 f)
+    bv))
+
+(define-deref short bytevector-s16-ref s16->bv)
+(define-deref unsigned-short bytevector-u16-ref u16->bv)
+(define-deref int bytevector-s32-ref s32->bv)
+(define-deref unsigned-int bytevector-u32-ref u32->bv)
+(define-deref long bytevector-long-ref long->bv)
+(define-deref unsigned-long bytevector-ulong-ref ulong->bv)
+(define-deref float bytevector-ieee-single-ref float->bv)
+(define-deref double bytevector-ieee-double-ref double->bv)
+(define-deref int16 bytevector-s16-ref s16->bv)
+(define-deref uint16 bytevector-u16-ref u16->bv)
+(define-deref int32 bytevector-s32-ref s32->bv)
+(define-deref uint32 bytevector-u32-ref u32->bv)
+(define-deref int64 bytevector-s64-ref s64->bv)
+(define-deref uint64 bytevector-u64-ref u64->bv)
+
+(define (pointer->bv p) 
+  (uint-list->bytevector (pointer->integer p) 
+			 (native-endianness) size-of-pointer))
+(define-deref pointer bytevector-pointer-ref pointer->bv)
+
 
 )

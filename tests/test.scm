@@ -32,6 +32,7 @@
   (test-equal "foreign-variable" 10 externed-variable)
   (test-assert "set! foreign-variable" (set! externed-variable 11))
   (test-equal "foreign-variable (2)" 11 externed-variable)
+  (display externed-variable) (newline)
   (test-equal "foreign-variable (3)" 11
 	      ((foreign-procedure test-lib int get_externed_variable ()))))
 
@@ -73,9 +74,9 @@
     (test-equal "count" 10 (st-parent-count st))
     (test-assert "elements" (st-parent-elements st))
     (let ((p (st-parent-elements st)))
+      (display p) (newline)
       (do ((i 0 (+ i 1))) ((= i 10) #t)
-	(test-equal "element" i
-		    (pointer-ref-c-int32 p (* i size-of-int32_t)))))
+	(test-equal "element" i (pointer-ref-c-int32 p (* i size-of-int32_t)))))
     (test-equal "attr" 5 (st-child-attr st))
     ((foreign-procedure test-lib void free_st_values (pointer))
      (bytevector->pointer st))))

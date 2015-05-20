@@ -230,18 +230,30 @@
 		  s))
 	   (pad (padding size a)))
       (+ size pad)))
+  (define parent-align (if (foreign-struct-descriptor-parent descriptor)
+			   (foreign-struct-descriptor-alignment
+			    (foreign-struct-descriptor-parent descriptor))
+			   0))
+  (define (alignment field)
+    (if (foreign-struct-descriptor? (cadr field))
+	(foreign-struct-descriptor-alignment (cadr field))
+	(cddr field)))
   (let loop ((fields (foreign-struct-descriptor-fields descriptor))
 	     ;; well...
 	     (size (if (foreign-struct-descriptor-parent descriptor)
 		       (foreign-struct-descriptor-size
 			(foreign-struct-descriptor-parent descriptor))
-		       0)))
+		       0))
+	     (off (offset 0 parent-align)))
     (if (null? fields)
 	(assertion-violation 'compute-offset "invalid field name" field)
 	(let ((f (car fields)))
 	  (if (eq? field (car f))
-	      size
-	      (loop (cdr fields) (compute-next-size size f)))))))
+	      (let ((next-size (compute-next-size size f)))
+		(- next-size (alignment f)))
+	      (let ((next-size (compute-next-size size f)))
+		(loop (cdr fields) next-size
+		      (- next-size (alignment f)))))))))
 	  
 
 (define (type->set! type)
@@ -286,8 +298,8 @@
 		    (lambda (o offset)
 		      (integer->pointer
 		       (if (= size-of-pointer 4)
-			   (bytevector-u32-native-ref o offset)
-			   (bytevector-u64-native-ref o offset)))))
+			   (bytevector-u32-ref o offset (native-endianness))
+			   (bytevector-u64-ref o offset (native-endianness))))))
     ht))
 
 (define *struct-set!*

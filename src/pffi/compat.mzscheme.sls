@@ -201,10 +201,14 @@
       ((k type)
        (with-syntax (((ref set!) (datum->syntax #'k (gen-name #'type))))
 	 #'(begin
+	     ;; ref/set as a byte so that we can specify detailed offset
+	     ;; e.g. 
+	     ;;  (pointer-ref-c-uint64 p 1)
+	     ;;  will refer a value from one byte offset
 	     (define (ref ptr offset)
-	       (ptr-ref ptr type offset))
+	       (ptr-ref ptr unsigned-char offset))
 	     (define (set! ptr offset value)
-	       (ptr-set! ptr type offset value))))))))
+	       (ptr-set! ptr unsigned-char offset value))))))))
 
 (define-deref char)
 (define-deref unsigned-char)
