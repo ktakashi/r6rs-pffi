@@ -307,11 +307,6 @@
   (if (= size-of-long 4)
       (bytevector-u32-ref bv index endian)
       (bytevector-u64-ref bv index endian)))
-(define (bytevector-pointer-ref bv index endian)
-  (%integer->pointer
-   (if (= size-of-pointer 4)
-       (bytevector-u32-ref bv index endian)
-       (bytevector-u64-ref bv index endian))))
 
 (define-syntax define-uint->bv
   (syntax-rules ()
@@ -366,15 +361,26 @@
 (define-deref int64 bytevector-s64-ref s64->bv)
 (define-deref uint64 bytevector-u64-ref u64->bv)
 
-(define (pointer->bv p) 
-  (uint-list->bytevector (pointer->integer p) 
-			 (native-endianness) size-of-pointer))
-(define-deref pointer bytevector-pointer-ref pointer->bv)
+(define (bytevector-pointer-ref bv index endian)
+  (let ((i (if (= size-of-pointer 4)
+	       (bytevector-u32-ref bv index endian)
+	       (bytevector-u64-ref bv index endian))))
+    (%integer->pointer i)))
+(define (pointer-ref-c-pointer p offset)
+  (bytevector-pointer-ref (pointer-bytevector p) offset (native-endianness)))
+(define (pointer-set-c-pointer! p offset ptr)
+  (let ((src-p (pointer-memory ptr)))
+    (if (= size-of-pointer 8)
+	(pointer-set-c-uint64! p offset (pointer->integer src-p))
+	(pointer-set-c-uint32! p offset (pointer->integer src-p)))))
 
 (define (%pointer->integer ptr)
   (pointer->integer (pointer-memory ptr)))
 (define (%integer->pointer i)
+  (define (integer->pointer-bv p) 
+    (uint-list->bytevector (list p)
+			   (native-endianness) size-of-pointer))
   (let ((p (integer->pointer i)))
-    (make-pointer-wrapper (memory->bytevector p size-of-pointer) p)))
+    (make-pointer-wrapper (integer->pointer-bv i) p)))
 
 )
