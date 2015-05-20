@@ -152,14 +152,6 @@ can't support it. Only SRFI-72 flavoured one, called NMosh, is supported.
 So if a pointer address is greater than 0x7FFFFFFF, then it doesn't work
 properly.
 
-### Vicare
-
-Vicare doesn't have conversion procedures which converts bytevector to
-pointer whose data is shared with given bytevector's elements. So a pointer
-converted by the procedure `bytevector->pointer` needs to be converted
-back to a bytevector to get result if foreign procedures updates the pointer.
-
-
 
 ## Misc (Memo)
 

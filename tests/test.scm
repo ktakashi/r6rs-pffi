@@ -7,9 +7,9 @@
 
 (define test-lib (open-shared-object "functions.so"))
 
-(define (print . args)
-  (for-each display args) (newline)
-  (flush-output-port (current-output-port)))
+;; (define (print . args)
+;;   (for-each display args) (newline)
+;;   (flush-output-port (current-output-port)))
 
 ;; there is no particular type for this, yet
 ;; TODO should we make 'shared-object?' or so?
