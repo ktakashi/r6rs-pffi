@@ -355,8 +355,11 @@
 	(assertion-violation 'compute-offset "invalid field name" field)
 	(let ((f (car fields)))
 	  (if (eq? field (car f))
-	      (let ((next-size (compute-next-size size f)))
-		(- next-size (alignment f)))
+	      (if (foreign-struct-descriptor? (cadr f))
+		  (offset (if (zero? off) off (+ off 1))
+			  (foreign-struct-descriptor-alignment (cadr f)))
+		  (let ((next-size (compute-next-size size f)))
+		    (- next-size (alignment f))))
 	      (let ((next-size (compute-next-size size f)))
 		(loop (cdr fields) next-size
 		      (- next-size (alignment f)))))))))
