@@ -32,7 +32,7 @@
 
 (library (pffi pointers)
     (export pointer?
-bytevector->pointer
+	    bytevector->pointer
 	    pointer->bytevector
 	    pointer->integer
 	    integer->pointer
