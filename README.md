@@ -269,6 +269,16 @@ can't support it. Only SRFI-72 flavoured one, called NMosh, is supported.
 So if a pointer address is greater than 0x7FFFFFFF, then it doesn't work
 properly.
 
+### Vicare
+
+Vicare doesn't support bytevector to pointer convertion whom converted
+pointer is shared with source bytevector. So this behaviour is emulated
+on this library. This emulation doesn't work on NULL pointer. So the
+following situation doesn't work:
+Suppose a shared object set a pointer value to NULL, then initialise it 
+on a function. Scheme code first loads the pointer, then call the
+initialisation function, however the loaded pointer still indicates NULL.
+
 
 ## Misc (Memo)
 
