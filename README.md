@@ -159,14 +159,59 @@ byte offset of the given _p_ not aligned value.
 
 #### [Procedure] `pointer-set-c-${type}!` _p_ _offset_ _value_
 
-`${type}` must be the same as `pointer-ref-c-${type}`.
+_${type}_ must be the same as `pointer-ref-c-${type}`.
 
 Sets given _value_ which is converted to corresponding type to pointer _p_
 on _offset_ location. _offset_ is byte offset of the given _p_.
 
 ### Foreign structure
 
-TBD
+#### [Macro] `define-foreign-struct` _name_ _specs ..._
+#### [Macro] `define-foreign-struct` (_name_ _ctr_ _pred_) _spec ..._
+
+Defines structure. The macro creates constructor, predicate, size-of 
+variable and accessors.
+
+_ctr_ is the constructor which returns newly allocated bytevector whose
+size is the size of this struct.
+
+_pred_ is the predicate, which simply check if the givn object is a
+bytevector and it has enough size for this structure. It doesn't distinguish
+2 bytevectors created by 2 different ways as long as it has enough size.
+
+Size-of variable is created adding `size-of-` prefix to _name_. This
+variable contains the size of this structure.
+
+_spec_ can be one of the followings:
+
+- (`fields` _field spec ..._)
+- (`protocol` _proc_)
+- (`parent` _parent-structure-)
+
+The same clause can only appear once. If there are more than one the same
+clause, it raises `&syntax`.
+
+_field spec_ can be one the followings:
+
+- (`fields` (_type_ _field_))
+- (`fields` (_type_ _field_ _getter_))
+- (`fields` (_type_ _field_ _getter_ _setter_))
+
+_type_ must be a type listed in _Foreign types_ section except `callback`.
+
+_field_ is the field name. This is used for generating _getter_ and _setter_.
+In other words, it doesn't have to be meaningful name as long as _getter_
+and _setter_ is specified.
+
+_getter_ is an accessor to retrieve the structure field value. If this is not
+specified, then it is created by adding `_name_-` prefix to _field_.
+
+_setter_ is an accessor to set the structure field value. If this is not
+specified, then it is created by adding `_name_-` prefix and `-set!` suffix
+to  _field_.
+
+The first form is creates _ctr_ and _pred_ adding `make-`
+prefix and `?` suffix respectively, like `define-record-type`. 
 
 
 ## Supporting implementations
