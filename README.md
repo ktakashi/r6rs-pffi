@@ -28,7 +28,7 @@ Now we want to use the above shared object from Scheme.
 
 ```
 
-See `example/` directory for more examples.
+See `examples/` directory for more examples.
 
 ## APIs
 
