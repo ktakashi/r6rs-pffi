@@ -3,6 +3,9 @@
 
 (define libstruct
   (open-shared-object "struct.so"))
+(define (print . args)
+  (for-each display args) (newline)
+  (flush-output-port (current-output-port)))
 
 (define fill-struct (foreign-procedure libstruct void fill_struct (pointer)))
 
@@ -20,9 +23,9 @@
       (st* (make-st2* 0 (integer->pointer 0) 0)))
   (fill-struct st)
   (fill-struct st*)
-  (display (st1-count st)) (newline)
-  (display st) (newline)
-  (display (st2-p st)) (newline)
-  (display (st1-count (st2-p st))) (newline)
-  (display (st1-count st*)) (newline))
+  (print (st1-count st))
+  (print st)
+  (print (st2-p st))
+  (print (st1-count (st2-p st))) 
+  (print (st1-count st*)))
 
