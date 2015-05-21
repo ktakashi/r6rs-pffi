@@ -21,8 +21,8 @@
 
 (let ((st (make-st2 (make-st1 0 (integer->pointer 0)) 0))
       (st* (make-st2* 0 (integer->pointer 0) 0)))
-  (fill-struct st)
-  (fill-struct st*)
+  (fill-struct (bytevector->pointer st))
+  (fill-struct (bytevector->pointer st*))
   (print (st1-count st))
   (print st)
   (print (st2-p st))

@@ -53,7 +53,10 @@
 	   #'(k lib type name scheme-name)))
 	((k lib type name scheme-name)
 	 (with-syntax (((pointer-ref pointer-set!)
-			(datum->syntax #'k (derefs #'type))))
+			(datum->syntax #'k (derefs #'type)))
+		       ;; To avoid Guile's bug.
+		       ;; this isn't needed if macro expander works *properly*
+		       ((dummy) (generate-temporaries '(dummy))))
 	   #'(begin
 	       (define dummy (lookup-shared-object lib (symbol->string 'name)))
 	       (define-syntax scheme-name

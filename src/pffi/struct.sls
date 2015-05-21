@@ -127,7 +127,10 @@
        (with-syntax (((((type field ref set) ...) parent protocol)
 		      (datum->syntax #'k (process-clauses #'name 
 							  #'(specs ...))))
-		     (sizeof (datum->syntax #'k (->sizeof #'name))))
+		     (sizeof (datum->syntax #'k (->sizeof #'name)))
+		     ;; To avoid Guile's bug.
+		     ;; this isn't needed if macro expander works *properly*
+		     ((this-protocol) (generate-temporaries '(this-protocol))))
 	 (with-syntax ((((types sizeofs) ...) 
 			(datum->syntax #'k (->sizeofs #'(type ...)))))
 	   #'(begin 
