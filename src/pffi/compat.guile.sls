@@ -175,11 +175,11 @@
 (define (bytevector-u8-ref/endian bv index endian)
   (bytevector-u8-ref bv index))
 (define (bytevector-u8-set/endian! bv index v endian)
-  (bytevector-u8-set! bv v index))
+  (bytevector-u8-set! bv index v))
 (define (bytevector-s8-ref/endian bv index endian)
   (bytevector-s8-ref bv index))
 (define (bytevector-s8-set/endian! bv index v endian)
-  (bytevector-s8-set! bv v index))
+  (bytevector-s8-set! bv index v))
 
 ;; kinda tricky
 (define (bytevector-long-ref bv index endian)
