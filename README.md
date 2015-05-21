@@ -166,7 +166,7 @@ on _offset_ location. _offset_ is byte offset of the given _p_.
 
 ### Foreign structure
 
-#### [Macro] `define-foreign-struct` _name_ _specs ..._
+#### [Macro] `define-foreign-struct` _name_ _spec ..._
 #### [Macro] `define-foreign-struct` (_name_ _ctr_ _pred_) _spec ..._
 
 Defines structure. The macro creates constructor, predicate, size-of 
@@ -186,7 +186,7 @@ _spec_ can be one of the followings:
 
 - (`fields` _field spec ..._)
 - (`protocol` _proc_)
-- (`parent` _parent-structure-)
+- (`parent` _parent-structure_)
 
 The same clause can only appear once. If there are more than one the same
 clause, it raises `&syntax`.
@@ -210,7 +210,39 @@ _setter_ is an accessor to set the structure field value. If this is not
 specified, then it is created by adding `_name_-` prefix and `-set!` suffix
 to  _field_.
 
-The first form is creates _ctr_ and _pred_ adding `make-`
+_proc_ is a procedure which is the same usage as `define-record-type`'s one. 
+
+_parent-structure_ must be a foreign structure defined by this macro. There
+is no actual hierarchy but just putting specified structure in front of
+this structure so that it seems it has a hierarchy. For example:
+
+```
+(define-foreign-struct p
+  (fields (int count)))
+(define-foreign-struct c
+  (fields (pointer elements))
+  (parent p))
+
+(make-c 0 (integer->pointer 0)) 
+;; 32 bits -> #vu8(0 0 0 0 0 0 0 0)
+;; 64 bits -> #vu8(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+```
+
+is the same as the following
+
+```
+(define-foreign-struct p
+  (fields (int count)))
+(define-foreign-struct c
+  (fields (p p)
+          (pointer elements)))
+
+(make-c (make-p 0) (integer->pointer 0)) 
+;; 32 bits -> #vu8(0 0 0 0 0 0 0 0)
+;; 64 bits -> #vu8(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+```
+
+If the first form is used, then _ctr_ and _pred_ are created by adding `make-`
 prefix and `?` suffix respectively, like `define-record-type`. 
 
 
