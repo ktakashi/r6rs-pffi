@@ -14,10 +14,10 @@
 (print global-int)
 (print ((foreign-procedure lib int get_global_int ())))
 
-
+;; string
 ((foreign-procedure lib void init_global_string ()))
-
 (define-foreign-variable lib pointer global_string)
+
 
 (print global-string) ;; pointer
 

@@ -197,11 +197,15 @@
       (if (pointer-wrapper? arg)
 	  (pointer-memory arg)
 	  arg))
+    (define (->pointer arg)
+      (if (pointer? arg)
+	  (make-pointer-wrapper (memory->bytevector arg size-of-pointer) arg)
+	  arg))
     (lambda args
       (let-values ((results (apply f (map pointer/value args))))
 	(for-each sync-pointer args)
 	;; do foreign-procedures return multiple values?
-	(apply values results))))
+	(apply values (map ->pointer results)))))
   (let ((func (lookup-shared-object lib (symbol->string name)))
 	(m (make-c-callout-maker ret arg-type)))
     (pointer-handler (m func))))
