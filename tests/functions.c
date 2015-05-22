@@ -54,7 +54,7 @@ void fill_st_values(struct st2 *st)
   int i;
   st->p.count = 10;
   st->p.elements = (int *)malloc(sizeof(int) * 10);
-  /* fprintf(stderr, "%p:%lu\n", st->p.elements, offsetof(struct st1, elements)); */
+  /* fprintf(stderr, "%p:%u\n", st->p.elements, offsetof(struct st1, elements)); */
   for (i = 0; i < 10; i++) st->p.elements[i] = i;
   st->attr = 5;
 }

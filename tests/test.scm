@@ -46,10 +46,10 @@
   (test-equal "foreign-variable (3)" 11
 	      ((foreign-procedure test-lib int get_externed_variable ()))))
 
-(let ((bv (make-bytevector (* 4 5))))
+(let ((bv (make-bytevector (* 4 5) 0)))
   (test-assert "calling with bytevector->pointer"
 	       ((foreign-procedure test-lib void fill_one (pointer int)) 
-		(bytevector->pointer bv) 10))
+		(bytevector->pointer bv) 5))
   (test-equal "passing bytevector"
 	      '(1 1 1 1 1) (bytevector->uint-list bv (native-endianness) 4)))
 
@@ -114,6 +114,7 @@
 	    (short attr)))
   (test-assert "struct ctr" (make-st-child (make-st-parent 
 					    0 (integer->pointer 0)) 0))
+  
   (let ((st (make-st-child (make-st-parent 0 (integer->pointer 0)) 0)))
     (test-assert "predicate (child)" (st-child? st))
     (test-assert "predicate (parent)" (st-parent? st))

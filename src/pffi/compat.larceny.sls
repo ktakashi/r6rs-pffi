@@ -146,6 +146,7 @@
 			void*-double-ref
 			void*-void*-ref
 			void*-void*-set!
+			ffi/handle->address
 			))
 
 ;; it might be better not to show handle (integer) itself
@@ -155,14 +156,16 @@
 (define (open-shared-object path) 
   (let ((handle (ffi/dlopen path)))
     (and handle
-	   (make-shared-object handle))))
+	 (make-shared-object handle))))
 
 ;; ffi/dlsym returns integer (address) directly so
 ;; we need to get converter
 (define address->pointer
-  (let ((ctr (cadddr (ffi-attribute-core-entry 'void*))))
+  ;; we can't use unsigned->void*, this converts null pointer
+  ;; to #f...
+  (let ((ctr (record-constructor void*-rt)))
     (lambda (addr)
-      (ctr addr 'dummy))))
+      (ctr addr))))
 (define (lookup-shared-object lib name) 
   (let ((address (ffi/dlsym (shared-object-handle lib) name)))
     (address->pointer address)))
@@ -171,6 +174,7 @@
 ;; so implement this here as well
 (define (make-foreign-invoker tramp args ret ret-conv arg-conv name)
   (lambda actual
+    ;; (display name) (newline) (display actual) (newline)
     (let-values (((error? value) 
 		  (ffi/apply tramp args ret 
 			     (map (lambda (c v) (c v (symbol->string name)))
@@ -194,7 +198,7 @@
 	     (ret (ffi/convert-ret-descriptor abi renamed-ret)))
 	(make-foreign-invoker tramp args ret rconv argconv name)))))
 
-
+;; maybe we should make this GC protected
 (define make-c-callback
   (let ((abi (ffi-get-abi 'callback '())))
     (lambda (ret types proc)
@@ -328,7 +332,13 @@
 (define size-of-int64_t 8)
 
 (define (bytevector->pointer bv . maybe-offset)
-  (error 'bytevector->pointer "not yet"))
+  ;; this is absolutely not documented anywhere and may not work
+  ;; in future. in include/Sys/macros.h, bytevector-ref is
+  ;; defined like this (*((byte*)(ptrof(x)+1)+i))
+  ;; thus, after 1 word, it will be the content of the bytevector.
+  ;; so what we need to do here is adding offset of word.
+  ;; we can actually calculate offset, but we don't do it for now
+  (address->pointer (+ (ffi/handle->address bv) size-of-pointer)))
 (define (pointer->bytevector p len . maybe-offset)
   (error 'pointer->bytevector "not yet"))
 

@@ -4,7 +4,6 @@ CFLAGS_32=
 CFLAGS_64=-fPIC
 CFLAGS=$(CFLAGS_$(LONG_BIT))
 
-
 all:
 	echo 'usage: make $traget'
 	echo '  sagittarius'
@@ -44,5 +43,7 @@ guile: prepare prepare-guile
 prepare-larceny:
 	cd tests; gcc -m32 -shared -Wall -o functions.so functions.c
 
+# Larceny raises an error if PFFI.log is there...
 larceny: prepare-larceny
+	rm -f PFFI.log
 	LD_LIBRARY_PATH=$(LDPATH):tests; larceny -path src -r6rs -program tests/test.scm
