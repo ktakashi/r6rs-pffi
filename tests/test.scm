@@ -47,8 +47,9 @@
 	      ((foreign-procedure test-lib int get_externed_variable ()))))
 
 (let ((bv (make-bytevector (* 4 5))))
-  ((foreign-procedure test-lib void fill_one (pointer int)) 
-   (bytevector->pointer bv) 10)
+  (test-assert "calling with bytevector->pointer"
+	       ((foreign-procedure test-lib void fill_one (pointer int)) 
+		(bytevector->pointer bv) 10))
   (test-equal "passing bytevector"
 	      '(1 1 1 1 1) (bytevector->uint-list bv (native-endianness) 4)))
 
@@ -178,6 +179,5 @@
     (test-equal "parent-slot" 5 (st-parent-count st))
     (test-equal "this-slot" 10 (st-child-attr st))
     ))
-
 
 (test-end)

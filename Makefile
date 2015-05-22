@@ -40,3 +40,9 @@ prepare-guile:
 guile: prepare prepare-guile
 	LD_LIBRARY_PATH=$(LDPATH):tests; guile --no-auto-compile -l .guile.rc -L src tests/test.scm
 	rm .guile.rc
+
+prepare-larceny:
+	cd tests; gcc -m32 -shared -Wall -o functions.so functions.c
+
+larceny: prepare-larceny
+	LD_LIBRARY_PATH=$(LDPATH):tests; larceny -path src -r6rs -program tests/test.scm
