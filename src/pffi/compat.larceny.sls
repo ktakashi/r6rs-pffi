@@ -340,7 +340,11 @@
   ;; we can actually calculate offset, but we don't do it for now
   (address->pointer (+ (ffi/handle->address bv) size-of-pointer)))
 (define (pointer->bytevector p len . maybe-offset)
-  (error 'pointer->bytevector "not yet"))
+  ;; Unfortunately, we only have one way, copy
+  (let ((bv (make-bytevector len)))
+    (do ((i 0 (+ i 1)))
+	((= i len) bv)
+      (bytevector-u8-set! bv i (pointer-ref-c-uint8 p i)))))
 
 (define integer->pointer address->pointer)
 (define pointer->integer void*->address)
