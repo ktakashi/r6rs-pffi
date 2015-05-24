@@ -110,7 +110,7 @@
 	    size-of-int32_t
 	    size-of-int64_t
 
-	    (rename (void*? pointer?))
+	    pointer?
 	    bytevector->pointer
 	    pointer->bytevector
 	    pointer->integer
@@ -147,6 +147,7 @@
 			void*-void*-ref
 			void*-void*-set!
 			ffi/handle->address
+			make-nonrelocatable-bytevector
 			))
 
 ;; it might be better not to show handle (integer) itself
@@ -158,30 +159,49 @@
     (and handle
 	 (make-shared-object handle))))
 
+(define-record-type (<pointer> make-pointer pointer?)
+  (fields (immutable src pointer-src)
+	  dummy	;; nonrelocatable bytevector (never accessed, just hold it to prevent GC)
+	  (immutable ptr pointer-ptr)))	;; element pointer of above
+(define (void*->pointer v*)
+  (let ((bv (make-bytevector size-of-pointer)))
+    (if (= size-of-pointer 4)
+	(bytevector-u32-native-set! bv 0 (void*-ptr v*))
+	(bytevector-u64-native-set! bv 0 (void*-ptr v*)))
+    (make-pointer bv #f v*)))
+
+;; we can't use unsigned->void*, this converts null pointer
+;; to #f...
+(define make-void* (record-constructor void*-rt))
+(define address->pointer
+  (lambda (addr)
+    (void*->pointer (make-void* addr))))
 ;; ffi/dlsym returns integer (address) directly so
 ;; we need to get converter
-(define address->pointer
-  ;; we can't use unsigned->void*, this converts null pointer
-  ;; to #f...
-  (let ((ctr (record-constructor void*-rt)))
-    (lambda (addr)
-      (ctr addr))))
 (define (lookup-shared-object lib name) 
   (let ((address (ffi/dlsym (shared-object-handle lib) name)))
     (address->pointer address)))
 
 ;; we want to manage foreign procedure per shared object
 ;; so implement this here as well
+(define (pointer->void* o)
+  (if (pointer? o)
+      (pointer-ptr o)
+      o))
+(define (%void*->pointer o)
+  (if (void*? o)
+      (void*->pointer o)
+      o))
 (define (make-foreign-invoker tramp args ret ret-conv arg-conv name)
   (lambda actual
     ;; (display name) (newline) (display actual) (newline)
     (let-values (((error? value) 
 		  (ffi/apply tramp args ret 
 			     (map (lambda (c v) (c v (symbol->string name)))
-				  arg-conv actual))))
+				  arg-conv (map pointer->void* actual)))))
       (if error?
 	  (error name "Failed to call foreign procedure" name actual)
-	  (ret-conv value (symbol->string name))))))
+	  (%void*->pointer (ret-conv value (symbol->string name)))))))
 
 (define make-c-function 
   ;; for some reason ffi-get-abi requires something for type
@@ -205,18 +225,22 @@
       (ffi/make-callback 
        abi
        (lambda args
-	 (let ((v (apply proc (map (lambda (t v) ((ffi/ret-converter t) v t))
+	 (let ((v (apply proc (map (lambda (t v) (%void*->pointer ((ffi/ret-converter t) v t)))
 				   types args)))
 	       (r-conv (ffi/arg-converter ret)))
-	   (if r-conv
-	       (r-conv v ret)
-	       v)))
+	   (pointer->void*
+	    (if r-conv
+		(r-conv v ret)
+		v))))
        (map ffi/rename-arg-type types)
        (ffi/rename-ret-type ret)))))
 ;; dummy
 (define (free-c-callback ignore) #t)
 
-(define pointer-pointer (record-accessor void*-rt 'ptr))
+(define void*-ptr (record-accessor void*-rt 'ptr))
+(define pointer-pointer
+  (lambda (p)
+    (void*-ptr (pointer-ptr p))))
 (define-syntax define-pointer-ref
   (syntax-rules ()
     ((_ name peek)
@@ -249,9 +273,15 @@
 (define-pointer-ref pointer-ref-c-unsigned-long %peek-long)
 (define-pointer-ref pointer-ref-c-long %peek-ulong)
 ;; use predefined ones
-(define pointer-ref-c-float void*-float-ref)
-(define pointer-ref-c-double void*-double-ref)
-(define pointer-ref-c-pointer void*-void*-ref)
+(define (pointer-ref-c-float p offset)
+  (let ((p (pointer-ptr p)))
+    (void*-float-ref p offset)))
+(define (pointer-ref-c-double p offset)
+  (let ((p (pointer-ptr p)))
+    (void*-double-ref p offset)))
+(define (pointer-ref-c-pointer p offset)
+  (let ((p (pointer-ptr p)))
+    (void*->pointer (void*-void*-ref p offset))))
 
 ;; pointer set
 (define-syntax define-pointer-set
@@ -338,7 +368,9 @@
   ;; thus, after 1 word, it will be the content of the bytevector.
   ;; so what we need to do here is adding offset of word.
   ;; we can actually calculate offset, but we don't do it for now
-  (address->pointer (+ (ffi/handle->address bv) size-of-pointer)))
+  (let ((dummy (make-nonrelocatable-bytevector (bytevector-length bv))))
+    (bytevector-copy! bv 0 dummy 0 (bytevector-length bv))
+    (make-pointer bv dummy (make-void* (+ (ffi/handle->address bv) size-of-pointer)))))
 (define (pointer->bytevector p len . maybe-offset)
   ;; Unfortunately, we only have one way, copy
   (let ((bv (make-bytevector len)))
@@ -347,6 +379,7 @@
       (bytevector-u8-set! bv i (pointer-ref-c-uint8 p i)))))
 
 (define integer->pointer address->pointer)
-(define pointer->integer void*->address)
+(define (pointer->integer p)
+  (void*->address (pointer-ptr p)))
   
 )

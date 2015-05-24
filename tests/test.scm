@@ -30,7 +30,7 @@
   (test-assert "free" (free-c-callback proc)))
 
 (let ((proc (c-callback int ((pointer p)) 
-			(lambda (p) 
+			(lambda (p)
 			  (pointer-ref-c-int32 p 0)))))
   (define callback-proc
     (foreign-procedure test-lib int callback_proc2 
