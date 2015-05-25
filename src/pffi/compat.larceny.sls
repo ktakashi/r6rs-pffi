@@ -161,8 +161,10 @@
 
 (define-record-type (<pointer> make-pointer pointer?)
   (fields (immutable src pointer-src)
-	  dummy	;; nonrelocatable bytevector (never accessed, just hold it to prevent GC)
-	  (immutable ptr pointer-ptr)))	;; element pointer of above
+	  ;; nonrelocatable bytevector 
+	  dummy
+	  ;; element pointer of above
+	  (immutable ptr pointer-ptr)))
 (define (void*->pointer v*)
   (let ((bv (make-bytevector size-of-pointer)))
     (if (= size-of-pointer 4)
@@ -192,6 +194,16 @@
   (if (void*? o)
       (void*->pointer o)
       o))
+
+(define (sync-pointer arg)
+  (if (pointer? arg)
+      (let* ((dst (pointer-src arg))
+	     (len (bytevector-length dst)))
+	(do ((i 0 (+ i 1)))
+	    ((= i len) arg)
+	  (bytevector-u8-set! dst i (pointer-ref-c-uint8 arg i))))
+      arg))
+
 (define (make-foreign-invoker tramp args ret ret-conv arg-conv name)
   (lambda actual
     ;; (display name) (newline) (display actual) (newline)
@@ -199,9 +211,10 @@
 		  (ffi/apply tramp args ret 
 			     (map (lambda (c v) (c v (symbol->string name)))
 				  arg-conv (map pointer->void* actual)))))
+      (for-each sync-pointer actual)
       (if error?
 	  (error name "Failed to call foreign procedure" name actual)
-	  (%void*->pointer (ret-conv value (symbol->string name)))))))
+	  (sync-pointer (%void*->pointer (ret-conv value (symbol->string name))))))))
 
 (define make-c-function 
   ;; for some reason ffi-get-abi requires something for type
@@ -225,13 +238,17 @@
       (ffi/make-callback 
        abi
        (lambda args
-	 (let ((v (apply proc (map (lambda (t v) (%void*->pointer ((ffi/ret-converter t) v t)))
+	 (let ((v (apply proc (map (lambda (t v)
+				     (sync-pointer
+				      (%void*->pointer ((ffi/ret-converter t) v t))))
 				   types args)))
 	       (r-conv (ffi/arg-converter ret)))
+	   ;; sync returning value 
 	   (pointer->void*
-	    (if r-conv
-		(r-conv v ret)
-		v))))
+	    (sync-pointer
+	     (if r-conv
+		 (r-conv v ret)
+		 v)))))
        (map ffi/rename-arg-type types)
        (ffi/rename-ret-type ret)))))
 ;; dummy
@@ -370,7 +387,7 @@
   ;; we can actually calculate offset, but we don't do it for now
   (let ((dummy (make-nonrelocatable-bytevector (bytevector-length bv))))
     (bytevector-copy! bv 0 dummy 0 (bytevector-length bv))
-    (make-pointer bv dummy (make-void* (+ (ffi/handle->address bv) size-of-pointer)))))
+    (make-pointer bv dummy (make-void* (+ (ffi/handle->address dummy) size-of-pointer)))))
 (define (pointer->bytevector p len . maybe-offset)
   ;; Unfortunately, we only have one way, copy
   (let ((bv (make-bytevector len)))
