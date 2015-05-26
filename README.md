@@ -253,6 +253,7 @@ prefix and `?` suffix respectively, like `define-record-type`.
 - Mosh (0.2.7 only NMosh)
 - Racket (plt-r6rs 6.1.1)
 - Guile (2.0.11)
+- Larceny (v0.98)
 
 
 ## Limitation per implementations
