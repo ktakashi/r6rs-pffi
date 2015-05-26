@@ -16,7 +16,8 @@ all:
 prepare:
 	cd tests; gcc $(CFLAGS) -shared -Wall -o functions.so functions.c
 
-test: sagittarius mosh vicare racket guile
+test: sagittarius mosh vicare racket guile larceny
+	@echo done!
 
 # Sagittarius and Vicare read shared object from LD_LIBRARY_PATH
 sagittarius: prepare
