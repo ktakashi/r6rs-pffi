@@ -338,7 +338,10 @@
   size-of-long bytevector-long-native-set!)
 (define-pointer-set pointer-set-c-float! 4 bytevector-ieee-single-native-set!)
 (define-pointer-set pointer-set-c-double! 8 bytevector-ieee-double-native-set!)
-(define pointer-set-c-pointer! void*-void*-set!)
+(define (pointer-set-c-pointer! p offset v)
+  (let ((p (pointer-ptr p))
+	(v (pointer-ptr v)))
+    (void*-void*-set! p offset v)))
 
 
 ;; types
