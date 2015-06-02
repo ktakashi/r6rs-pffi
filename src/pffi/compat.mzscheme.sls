@@ -162,7 +162,7 @@
 	 (file (if index
 		   (substring path 0 index)
 		   path)))
-    (ffi-lib path)))
+    (ffi-lib file)))
 
 (define (lookup-shared-object lib name)
   ;; this gets address of specified object which is exactly what
@@ -268,7 +268,19 @@
 (define-deref uint32 u32->bv)
 (define-deref int64 s64->bv)
 (define-deref uint64 u64->bv)
-(define-deref pointer pointer->bytevector)
+
+(define (pointer-ref-c-pointer p offset) 
+  (let ((bv (make-bytevector size-of-pointer)))
+    (do ((i 0 (+ i 1)))
+	((= i size-of-pointer) (ptr-ref bv pointer 0))
+      (bytevector-u8-set! bv i (pointer-ref-c-uint8 p (+ i offset))))))
+(define (pointer-set-c-pointer! p offset v) 
+  (let* ((pv (pointer->integer v))
+	 (bv (uint-list->bytevector (list pv) 
+				    (native-endianness) size-of-pointer)))
+    (do ((i 0 (+ i 1)))
+	((= i size-of-pointer))
+      (pointer-set-c-uint8! p (+ i offset) (bytevector-u8-ref bv i)))))
 
 (define-syntax define-sizeof
   (lambda (x)
