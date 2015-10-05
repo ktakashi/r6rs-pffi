@@ -286,7 +286,7 @@
 (define-deref uint64 bytevector-u64-ref u64->bv)
 
 (define (pointer->bv p) 
-  (uint-list->bytevector (pointer->integer p) 
+  (uint-list->bytevector (list (pointer->integer p))
 			 (native-endianness) size-of-pointer))
 (define-deref pointer bytevector-pointer-ref pointer->bv)
 

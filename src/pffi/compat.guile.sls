@@ -142,7 +142,7 @@
 	 (file (if index
 		   (substring path 0 index)
 		   path)))
-    (dynamic-link path)))
+    (dynamic-link file)))
 (define (lookup-shared-object lib name)
   (dynamic-pointer name lib))
 

@@ -253,15 +253,10 @@ prefix and `?` suffix respectively, like `define-record-type`.
 - Mosh (0.2.7)
 - Racket (plt-r6rs 6.1.1)
 - Guile (2.0.11)
+- Larceny (v0.98)
 
 
 ## Limitation per implementations
-
-### Mosh
-
-Mosh has 2 flavours of macro expansion style, psyntax and SRFI-72. The
-first one doesn't expose `bytevector-pointer` so currently this library
-can't support it. Only SRFI-72 flavoured one, called NMosh, is supported.
 
 ### Vicare
 
@@ -273,6 +268,10 @@ Suppose a shared object set a pointer value to NULL, then initialise it
 on a function. Scheme code first loads the pointer, then call the
 initialisation function, however the loaded pointer still indicates NULL.
 
+### Larceny
+
+On Larceny, GC may move pointers so converting bytevector uses wrapper
+technique the same as Vicare. Thus the same limitation is applied to it.
 
 ## Misc (Memo)
 

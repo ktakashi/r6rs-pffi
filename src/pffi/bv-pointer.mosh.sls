@@ -33,8 +33,8 @@
 ;; for Psyntax Mosh, we just raise an error, sorry
 (library (pffi bv-pointer)
     (export bytevector->pointer)
-    (import (rnrs))
+    (import (rnrs) (psyntax system $bootstrap))
 
-(define (bytevector->pointer . ignore)
-  (assertion-violation 'bytevector->pointer "not supported on Psyntax Mosh"))
+;; seems we can get it like this
+(define bytevector->pointer (eval-core 'bytevector-pointer))
 )
