@@ -248,9 +248,9 @@ prefix and `?` suffix respectively, like `define-record-type`.
 
 ## Supporting implementations
 
-- Sagittarius (0.6.4)
+- Sagittarius (0.6.5 or later)
 - Vicare (0.3d7)
-- Mosh (0.2.7 only NMosh)
+- Mosh (0.2.7)
 - Racket (plt-r6rs 6.1.1)
 - Guile (2.0.11)
 
@@ -262,12 +262,6 @@ prefix and `?` suffix respectively, like `define-record-type`.
 Mosh has 2 flavours of macro expansion style, psyntax and SRFI-72. The
 first one doesn't expose `bytevector-pointer` so currently this library
 can't support it. Only SRFI-72 flavoured one, called NMosh, is supported.
-
-### Sagittarius
-
-32 bit version of Sagittarius (0.6.4) has a bug on `uinteger->bytevector`.
-So if a pointer address is greater than 0x7FFFFFFF, then it doesn't work
-properly.
 
 ### Vicare
 
@@ -296,6 +290,10 @@ very limited.
 Trunk repository version has far more APIs but it's not released nor
 maintained. Thus it is hard for me to make portable layer for it.
 
+### Why no IronScheme
+
+.Net makes a bit things harder. And its FFI support is very limited. (e.g.
+it doesn't work on Mono)
 
 To support above non supported implementations, your pull request is
 the fastest way :)
