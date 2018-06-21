@@ -1,0 +1,50 @@
+;;; -*- mode:scheme; coding: utf-8; -*-
+;;;
+;;; src/pffi/bv-pointer.chezscheme.sls - Compatible layer of compatible layer
+;;;  
+;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
+;;;   
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;   
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;  
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;  
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;  
+
+#!r6rs
+(library (pffi bv-pointer)
+    (export bytevector->pointer)
+    (import (rnrs)
+	    (only (chezscheme)
+		  library-directories foreign-procedure load-shared-object))
+
+(define (find-file file)
+  (let loop ((dirs (library-directories)))
+    (if (null? dirs)
+	(assertion-violation 'tcp-connect "Couldn't find runtime" file)
+	(let ((path (string-append (caar dirs) "/" file)))
+	  (if (file-exists? path)
+	      path
+	      (loop (cdr dirs)))))))
+(define dummy (load-shared-object (find-file "pffi/bvp.so")))
+
+(define bytevector->pointer
+  (foreign-procedure "bytevector2pointer" (u8*) uptr))
+)
