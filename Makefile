@@ -11,7 +11,7 @@ all:
 	echo '  mosh'
 	echo '  racket'
 	echo '  guile'
-#	echo '  ypsilon'
+	echo '  chez'
 
 prepare:
 	cd tests; gcc $(CFLAGS) -shared -Wall -o functions.so functions.c
@@ -49,3 +49,11 @@ prepare-larceny:
 larceny: prepare-larceny
 	rm -f PFFI.log
 	LD_LIBRARY_PATH=$(LDPATH):tests larceny -path src -r6rs -program tests/test.scm
+
+prepare-chez: prepare
+	gcc $(CFLAGS) -shared -O3 -Wall -o src/pffi/bvp.so src/pffi/bvp.c
+	$(shell test ! -f tests/lib/srfi/:64.sls && ln -s %3a64.chezscheme.sls tests/lib/srfi/:64.sls)
+	$(shell test ! -d tests/lib/srfi/:64 && ln -s %3a64 tests/lib/srfi/:64)
+
+chez: prepare-chez
+	LD_LIBRARY_PATH=$(LDPATH):tests scheme --libdirs src:tests/lib --program tests/test.scm

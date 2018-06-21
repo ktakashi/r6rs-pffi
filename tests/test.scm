@@ -99,7 +99,6 @@
 				  (p (bytevector->pointer t)))
 			     (set p 1 value)
 			     (ref p 1)))))))))
-
   (test-assert "pointer?" (pointer? p))
   (test-pointer-ref pointer-ref-c-int8 bytevector-s8-ref/endian)
   (test-pointer-ref pointer-ref-c-uint8 bytevector-u8-ref/endian)
@@ -137,7 +136,6 @@
   (test-pointer-set! uint64 #xFFFFFFFF)
   (test-pointer-set! float 1.0)
   (test-pointer-set! double 1.0)
-
   (test-equal 'pointer-set-c-pointer! 12345
 	      (let* ((t (bytevector-copy bv))
 		     (p (bytevector->pointer t)))

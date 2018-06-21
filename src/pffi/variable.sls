@@ -32,7 +32,7 @@
 (library (pffi variable)
   (export define-foreign-variable)
   (import (rnrs)
-	  (for (only (srfi :13) string-map) expand)
+	  (for (pffi misc) expand)
 	  (pffi compat))
 
   ;; to make FFI variable settable, we use macro

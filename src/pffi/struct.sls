@@ -40,8 +40,7 @@
     (export define-foreign-struct)
     (import (rnrs)
 	    (pffi compat)
-	    ;; should support this at least...
-	    (only (srfi :1) take drop split-at))
+	    (only (pffi misc) take drop split-at))
 
 ;; use fields, protocol and parent from (rnrs)
 ;; e.g.

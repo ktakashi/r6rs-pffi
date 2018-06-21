@@ -254,7 +254,7 @@ prefix and `?` suffix respectively, like `define-record-type`.
 - Racket (plt-r6rs 6.1.1)
 - Guile (2.0.11)
 - Larceny (v0.98)
-
+- Chez Scheme (v9.5)
 
 ## Limitation per implementations
 
@@ -273,12 +273,19 @@ initialisation function, however the loaded pointer still indicates NULL.
 On Larceny, GC may move pointers so converting bytevector uses wrapper
 technique the same as Vicare. Thus the same limitation is applied to it.
 
+### Chez Scheme
+
+On Chez Scheme, it requires `bvp.so` file which can be created by the
+following command:
+
+```shell
+gcc -fPIC -shared -O3 -Wall -o src/pffi/bvp.so src/pffi/bvp.c
+```
+
+`-fPIC` is required only on 64 bit environment.
+
+
 ## Misc (Memo)
-
-### Why no Chez?
-
-I don't have Chez Scheme but Petite Chez Scheme. And Petite doesn't have
-FFI available (it's clearly said on the Manual).
 
 ### Why no Ypsilon
 
