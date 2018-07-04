@@ -14,8 +14,6 @@ create_symlink() {
 create_symlink -f %3a64.chezscheme.sls tests/lib/srfi/:64.sls
 create_symlink -d %3a64 tests/lib/srfi/:64
 
-gcc -fPIC -shared -O3 -Wall -o src/pffi/bvp.so src/pffi/bvp.c
-
 check_output() {
     local status=0
     while IFS= read -r LINE; do

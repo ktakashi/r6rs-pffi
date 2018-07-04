@@ -51,7 +51,6 @@ larceny: prepare-larceny
 	LD_LIBRARY_PATH=$(LDPATH):tests larceny -path src -r6rs -program tests/test.scm
 
 prepare-chez: prepare
-	gcc $(CFLAGS) -shared -O3 -Wall -o src/pffi/bvp.so src/pffi/bvp.c
 	$(shell test ! -f tests/lib/srfi/:64.sls && ln -s %3a64.chezscheme.sls tests/lib/srfi/:64.sls)
 	$(shell test ! -d tests/lib/srfi/:64 && ln -s %3a64 tests/lib/srfi/:64)
 
