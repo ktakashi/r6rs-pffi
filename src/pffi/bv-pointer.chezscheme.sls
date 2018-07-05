@@ -32,17 +32,14 @@
 (library (pffi bv-pointer)
     (export bytevector->pointer)
     (import (rnrs)
-	    (only (chezscheme)
-		  library-directories foreign-procedure load-shared-object))
+	    (only (chezscheme) foreign-procedure load-shared-object))
 
 (define dummy 
-  (begin
-    (load-shared-object (find-file "mongodb/net/tcp/chez.so"))
-    (case (machine-type)
-      ((a6le i3le ti3le) (load-shared-object "libc.so.6"))
-      ((i3osx ti3osx a6osx ta6osx) (load-shared-object "libc.dylib"))
-      ((a6nt i3nt ti3nt) (load-shared-object "msvcrt.dll"))
-      (else (load-shared-object "libc.so")))))
+  (case (machine-type)
+    ((a6le i3le ti3le) (load-shared-object "libc.so.6"))
+    ((i3osx ti3osx a6osx ta6osx) (load-shared-object "libc.dylib"))
+    ((a6nt i3nt ti3nt) (load-shared-object "msvcrt.dll"))
+    (else (load-shared-object "libc.so"))))
 
 (define f (foreign-procedure "memmove" (u8* u8* size_t) uptr))
 (define (bytevector->pointer bv) (f bv bv 0))
