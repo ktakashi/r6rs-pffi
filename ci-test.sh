@@ -20,6 +20,7 @@ check_output() {
 	echo $LINE
 	case $LINE in
 	    *FAIL*) status=255 ;;
+	    *Exception*) status=255 ;;
 	esac
     done
     return ${status}

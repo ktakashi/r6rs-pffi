@@ -32,7 +32,8 @@
 (library (pffi bv-pointer)
     (export bytevector->pointer)
     (import (rnrs)
-	    (only (chezscheme) foreign-procedure load-shared-object))
+	    (only (chezscheme)
+		  machine-type foreign-procedure load-shared-object))
 
 (define dummy 
   (case (machine-type)
