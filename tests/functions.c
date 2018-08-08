@@ -20,6 +20,11 @@ int callback_proc2(int (*f)(int *), int n)
   return f(&n);
 }
 
+void* callback_proc3(void* (*f)(int *), int n)
+{
+  return f(&n);
+}
+
 
 extern int externed_variable;
 int externed_variable = 10;

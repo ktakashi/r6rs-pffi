@@ -184,19 +184,30 @@
 					,(unwrap-callback arg-types) ,ret)
 		    chezscheme-environment)))
     (lambda args
-      (apply proc (map (lambda (type arg)
-			 (case type
-			   ((void*) (pointer->integer arg))
-			   (else arg)))
-		       arg-types args)))))
+      (let ((r (apply proc (map (lambda (type arg)
+				  (case type
+				    ((void*) (pointer->integer arg))
+				    (else arg)))
+				arg-types args))))
+	(case ret
+	  ((void*) (integer->pointer r))
+	  (else r))))))
 (define (make-c-callback ret args proc)
   (define (wrap proc)
     (lambda vals
-      (apply proc (map (lambda (type arg)
-			 (case type
-			   ((void*) (integer->pointer arg))
-			   (else arg)))
-		       args vals))))
+      (let ((r (apply proc (map (lambda (type arg)
+				  (case type
+				    ((void*) (integer->pointer arg))
+				    (else arg)))
+				args vals))))
+	;; For some reason this doesn't work
+	;; (it breaks struct tests. I don't know why)
+	#;(case ret
+	  ((void*) (pointer->integer r))
+	  (else r))
+	(if (pointer? r)
+	    (pointer->integer r)
+	    r))))
   (define code
     (let ((sym (gensym)))
       (hashtable-set! *callback-table* sym (wrap proc))

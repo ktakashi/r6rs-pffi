@@ -38,6 +38,13 @@
   (test-equal "callback (2)" 2 (callback-proc proc 2))
   (test-assert "free" (free-c-callback proc)))
 
+(let ((proc (c-callback pointer ((pointer p)) (lambda (p) p))))
+  (define callback-proc
+    (foreign-procedure test-lib pointer callback_proc3
+		       ((callback pointer (pointer)) int)))
+  (test-assert "callback (3)" (pointer? (callback-proc proc 2)))
+  (test-assert "free" (free-c-callback proc)))
+
 (let ()
   (define-foreign-variable test-lib int externed_variable)
   (test-equal "foreign-variable" 10 externed-variable)
