@@ -34,12 +34,13 @@ gcc -fPIC -shared -Wall -o tests/functions.so tests/functions.c
 
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:tests
 
+cd tests
 for impl in ${implementations[@]}; do
     echo Testing with ${impl}
-    for file in tests/*.scm; do
+    for file in *.scm; do
 	scheme-env run ${impl} \
-		   --loadpath src \
-		   --loadpath tests/lib \
+		   --loadpath ../src \
+		   --loadpath lib \
 		   --standard r6rs --program ${file} | check_output
 	case ${EXIT_STATUS} in
 	    0) EXIT_STATUS=$? ;;
@@ -48,6 +49,7 @@ for impl in ${implementations[@]}; do
     echo Done!
     echo
 done
+cd ..
 
 echo Library test status ${EXIT_STATUS}
 exit ${EXIT_STATUS}
