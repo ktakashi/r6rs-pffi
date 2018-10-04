@@ -5,7 +5,7 @@
 
 (test-begin "PFFI")
 
-(define test-lib (open-shared-object "functions.so"))
+(define test-lib (open-shared-object "./functions.so"))
 
 ;; (define (print . args)
 ;;   (for-each display args) (newline)

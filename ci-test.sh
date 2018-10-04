@@ -32,8 +32,6 @@ echo "Preparing for tests"
 
 gcc -fPIC -shared -Wall -o tests/functions.so tests/functions.c
 
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:tests
-
 cd tests
 for impl in ${implementations[@]}; do
     echo Testing with ${impl}

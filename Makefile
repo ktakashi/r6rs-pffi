@@ -21,25 +21,25 @@ test: sagittarius mosh vicare racket guile larceny
 
 # Sagittarius and Vicare read shared object from LD_LIBRARY_PATH
 sagittarius: prepare
-	LD_LIBRARY_PATH=$(LDPATH):tests sagittarius -Lsrc tests/test.scm
+	cd tests; sagittarius -L../src test.scm
 
 vicare: prepare
-	LD_LIBRARY_PATH=$(LDPATH):tests vicare -L src tests/test.scm
+	cd test; vicare -L ../src test.scm
 
 # Seems Mosh as well
 mosh: prepare
-	LD_LIBRARY_PATH=$(LDPATH):tests mosh --loadpath=src tests/test.scm
-	LD_LIBRARY_PATH=$(LDPATH):tests nmosh --loadpath=src tests/test.scm
+	cd tests; mosh --loadpath=../src test.scm
+	cd tests; nmosh --loadpath=../src test.scm
 
 racket: prepare
-	LD_LIBRARY_PATH=$(LDPATH):tests plt-r6rs ++path ./src tests/test.scm
+	cd tests; plt-r6rs ++path ../src test.scm
 
 # guile doesn't read .sls or .guile.sls by default...
 prepare-guile:
 	echo \(set! %load-extensions \'\(\".guile.sls\" \".sls\" \".scm\"\)\) > .guile.rc
 
 guile: prepare prepare-guile
-	LD_LIBRARY_PATH=$(LDPATH):tests guile --no-auto-compile -l .guile.rc -L src tests/test.scm
+	cd tests; guile --no-auto-compile -l .guile.rc -L ../src test.scm
 	rm .guile.rc
 
 prepare-larceny:
@@ -48,11 +48,11 @@ prepare-larceny:
 # Larceny raises an error if PFFI.log is there...
 larceny: prepare-larceny
 	rm -f PFFI.log
-	LD_LIBRARY_PATH=$(LDPATH):tests larceny -path src -r6rs -program tests/test.scm
+	cd tests; larceny -path ../src -r6rs -program test.scm
 
 prepare-chez: prepare
 	$(shell test ! -f tests/lib/srfi/:64.sls && ln -s %3a64.chezscheme.sls tests/lib/srfi/:64.sls)
 	$(shell test ! -d tests/lib/srfi/:64 && ln -s %3a64 tests/lib/srfi/:64)
 
 chez: prepare-chez
-	LD_LIBRARY_PATH=$(LDPATH):tests scheme --libdirs src:tests/lib --program tests/test.scm
+	cd tests; scheme --libdirs ../src:lib --program test.scm
