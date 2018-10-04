@@ -114,19 +114,15 @@
 	    pointer->bytevector
 	    pointer->integer
 	    integer->pointer
-
-	    ;; internal use
-	    *callback-table*
 	    )
     (import (rnrs)
-	    (rnrs eval)
 	    (rename (pffi bv-pointer)
 		    (bytevector->pointer bytevector->address))
 	    (only (chezscheme)
-		  gensym
 		  load-shared-object
 		  lock-object foreign-callable-entry-point
 		  foreign-callable unlock-object
+		  foreign-procedure
 		  ftype-pointer-address
 		  foreign-entry foreign-sizeof foreign-ref foreign-set!))
 
@@ -172,53 +168,119 @@
   (make-shared-object))
 (define (lookup-shared-object lib name) (make-pointer (foreign-entry name)))
 
-(define chezscheme-environment
-  (environment '(chezscheme) '(only (pffi compat) *callback-table*)))
-(define *callback-table* (make-eq-hashtable))
 (define (free-c-callback proc) (unlock-object proc))
-(define (make-c-function lib ret name arg-types)
-  (define (unwrap-callback arg-types)
-    (map (lambda (type)
-	   (case type ((callback) pointer) (else type))) arg-types))
-  (let ((proc (eval `(foreign-procedure ,(symbol->string name)
-					,(unwrap-callback arg-types) ,ret)
-		    chezscheme-environment)))
-    (lambda args
-      (let ((r (apply proc (map (lambda (type arg)
-				  (case type
-				    ((void*) (pointer->integer arg))
-				    (else arg)))
-				arg-types args))))
-	(case ret
-	  ((void*) (integer->pointer r))
-	  (else r))))))
-(define (make-c-callback ret args proc)
-  (define (wrap proc)
-    (lambda vals
-      (let ((r (apply proc (map (lambda (type arg)
-				  (case type
-				    ((void*) (integer->pointer arg))
-				    (else arg)))
-				args vals))))
-	;; For some reason this doesn't work
-	;; (it breaks struct tests. I don't know why)
-	#;(case ret
-	  ((void*) (pointer->integer r))
-	  (else r))
-	(if (pointer? r)
-	    (pointer->integer r)
-	    r))))
-  (define code
-    (let ((sym (gensym)))
-      (hashtable-set! *callback-table* sym (wrap proc))
-      (let ((code (eval `(let ()
-			  (define p (hashtable-ref *callback-table* ',sym #f))
-			  (foreign-callable p ,args ,ret))
-		       chezscheme-environment)))
-	(hashtable-delete! *callback-table* sym)
-	code)))
-  (lock-object code)
-  (foreign-callable-entry-point code))
+
+(define-syntax make-c-function
+  (lambda (x)
+    (define (->cheztype type)
+      (case type
+	((void          ) 'void)
+	((char          ) 'integer-8)
+	((unsigned-char ) 'unsigned-8)
+	((short         ) 'short)
+	((unsigned-short) 'unsigned-short)
+	((int           ) 'int)
+	((unsigned-int  ) 'unsigned-int)
+	((long          ) 'long)
+	((unsigned-long ) 'unsigned-long)
+	((int8_t        ) 'integer-8)
+	((uint8_t       ) 'unsigned-8)
+	((int16_t       ) 'integer-16)
+	((uint16_t      ) 'unsigned-16)
+	((int32_t       ) 'integer-32)
+	((uint32_t      ) 'unsigned-32)
+	((int64_t       ) 'integer-64)
+	((uint64_t      ) 'unsigned-64)
+	((double        ) 'double)
+	((float         ) 'float)
+	((pointer       ) 'void*)
+	;; let chez complain
+	(else type)))
+    (define (unwrap-callback k args)
+      (define (types args acc)
+	(syntax-case args ()
+	  (() (reverse acc))
+	  (((type ignore ...) rest ...)
+	   (and (identifier? #'type) (eq? 'callback (syntax->datum #'type)))
+	   (types #'(rest ...) (cons 'void* acc)))
+	  ((type rest ...)
+	   (types #'(rest ...)
+		  (cons (->cheztype (syntax->datum #'type)) acc)))))
+      (datum->syntax k (types args '())))
+
+    (syntax-case x (quote list)
+      ((k lib ret (quote name) (list args ...))
+       (identifier? #'name)
+       (with-syntax ((name-str (symbol->string (syntax->datum #'name)))
+		     ((types ...) (unwrap-callback #'k #'(args ...)))
+		     (chez-ret (datum->syntax #'k (->cheztype (syntax->datum #'ret)))))
+	 #'(let ((fp (foreign-procedure name-str (types ...) chez-ret))
+		 (arg-types (list args ...)))
+	     (lambda arg*
+	       (let ((r (apply fp (map (lambda (type arg)
+					 (case type
+					   ((void*) (pointer->integer arg))
+					   (else arg)))
+				       arg-types arg*))))
+		 (case ret
+		   ((void*) (integer->pointer r))
+		   (else r))))))))))
+(define-syntax make-c-callback
+  (lambda (x)
+    (define (->cheztype type)
+      (case type
+	((void          ) 'void)
+	((char          ) 'integer-8)
+	((unsigned-char ) 'unsigned-8)
+	((short         ) 'short)
+	((unsigned-short) 'unsigned-short)
+	((int           ) 'int)
+	((unsigned-int  ) 'unsigned-int)
+	((long          ) 'long)
+	((unsigned-long ) 'unsigned-long)
+	((int8_t        ) 'integer-8)
+	((uint8_t       ) 'unsigned-8)
+	((int16_t       ) 'integer-16)
+	((uint16_t      ) 'unsigned-16)
+	((int32_t       ) 'integer-32)
+	((uint32_t      ) 'unsigned-32)
+	((int64_t       ) 'integer-64)
+	((uint64_t      ) 'unsigned-64)
+	((double        ) 'double)
+	((float         ) 'float)
+	((pointer       ) 'void*)
+	;; let chez complain
+	(else type)))
+    (define (unwrap-callback k args)
+      (define (types args acc)
+	(syntax-case args ()
+	  (() (reverse acc))
+	  (((type ignore ...) rest ...)
+	   (and (identifier? #'type) (eq? 'callback (syntax->datum #'type)))
+	   (types #'(rest ...) (cons 'void* acc)))
+	  ((type rest ...)
+	   (types #'(rest ...)
+		  (cons (->cheztype (syntax->datum #'type)) acc)))))
+      (datum->syntax k (types args '())))
+    (syntax-case x (list)
+      ((k ret (list arg* ...) body)
+       (with-syntax (((types ...) (unwrap-callback #'k #'(arg* ...)))
+		     (chez-ret (datum->syntax #'k (->cheztype (syntax->datum #'ret)))))
+	 #'(let ((args (list arg* ...)))
+	     (define (wrap proc)
+	       (lambda vals
+		 (let ((r (apply proc (map (lambda (type arg)
+					     (case type
+					       ((void*) (integer->pointer arg))
+					       (else arg)))
+					   args vals))))
+		   (if (pointer? r)
+		       (pointer->integer r)
+		       r))))
+	     (let ((p (wrap body)))
+	       (define code (foreign-callable p (types ...) chez-ret))
+	       (lock-object code)
+	       (foreign-callable-entry-point code))))))))
 
 (define-syntax define-deref
   (lambda (x)
