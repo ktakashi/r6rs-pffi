@@ -273,18 +273,6 @@ initialisation function, however the loaded pointer still indicates NULL.
 On Larceny, GC may move pointers so converting bytevector uses wrapper
 technique the same as Vicare. Thus the same limitation is applied to it.
 
-### Chez Scheme
-
-On Chez Scheme, it requires `bvp.so` file which can be created by the
-following command:
-
-```shell
-gcc -fPIC -shared -O3 -Wall -o src/pffi/bvp.so src/pffi/bvp.c
-```
-
-`-fPIC` is required only on 64 bit environment.
-
-
 ## Misc (Memo)
 
 ### Why no Ypsilon
