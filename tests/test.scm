@@ -227,4 +227,10 @@
     (test-equal "this-slot" 10 (st-child-attr st))
     ))
 
+;; passing string or bytevector to pointer type
+(let ((id-str (foreign-procedure test-lib pointer id_str (pointer))))
+  (test-equal (string->utf8 "foo") (pointer->bytevector (id-str "foo") 3))
+  (test-equal #vu8(1 2 3) (pointer->bytevector (id-str #vu8(1 2 3)) 3)))
+  
+
 (test-end)

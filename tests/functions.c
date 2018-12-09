@@ -26,6 +26,11 @@ void* callback_proc3(void* (*f)(int *), int n)
 }
 
 
+void* id_str(char *s)
+{
+  return (void *)s;
+}
+
 extern int externed_variable;
 int externed_variable = 10;
 
