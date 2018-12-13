@@ -2,7 +2,7 @@
 ;;;
 ;;; src/pffi/compat.larceny.sls - Compatible layer for Larceny
 ;;;  
-;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2015-2018 Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -165,6 +165,8 @@
 	  dummy
 	  ;; element pointer of above
 	  (immutable ptr pointer-ptr)))
+(define (null-pointer? pointer) (zero? (pointer->integer pointer)))
+
 (define (void*->pointer v*)
   (let ((bv (make-bytevector size-of-pointer)))
     (if (= size-of-pointer 4)
@@ -201,7 +203,7 @@
       o))
 
 (define (sync-pointer arg)
-  (if (pointer? arg)
+  (if (and (pointer? arg) (not (null-pointer? arg)))
       (let* ((dst (pointer-src arg))
 	     (len (bytevector-length dst)))
 	(do ((i 0 (+ i 1)))
