@@ -2,7 +2,7 @@
 ;;;
 ;;; src/pffi/struct.sls - Foreign structure
 ;;;  
-;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2015-2019  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -51,8 +51,6 @@
 ;;     (lambda (p)
 ;;       (lambda (size)
 ;;         (p size (bytevector->pointer (make-bytevector size)))))))
-;;
-;; NB: for now we don't support protocol. it's a bit pain in the ass...
 (define-syntax define-foreign-struct
   (lambda (x)
     (define (->ctr&pred name)
@@ -85,27 +83,33 @@
 	     (loop #'rest
 		   (cons (list (d #'type) (d #'name) (d #'ref) (d #'set))
 			 r))))))
-      (let loop ((clauses clauses) (fs #f) (par #f) (proto #f))
+      (let loop ((clauses clauses) (fs #f) (par #f) (proto #f) (align #f))
 	(syntax-case clauses (fields parent protocol)
-	  (() (list fs par proto))
+	  (() (list fs par proto align))
 	  (((fields defs ...) . rest)
 	   (or (not fs)
 	       (syntax-violation 'define-foreign-struct 
 				 "only one fields clause allowed" 
 				 x clauses))
-	   (loop #'rest (process-fields #'(defs ...)) par proto))
+	   (loop #'rest (process-fields #'(defs ...)) par proto align))
 	  (((parent p) . rest)
 	   (or (not par)
 	       (syntax-violation 'define-foreign-struct 
 				 "only one parent clause allowed" 
 				 x clauses))
-	   (loop #'rest fs (d #'p) proto))
+	   (loop #'rest fs (d #'p) proto align))
 	  (((protocol p) . rest)
 	   (or (not proto)
 	       (syntax-violation 'define-foreign-struct 
 				 "only one protocol clause allowed" 
 				 x clauses))
-	   (loop #'rest fs par (d #'p)))
+	   (loop #'rest fs par (d #'p) align))
+	  (((alignment a) . rest)
+	   (or (not align)
+	       (syntax-violation 'define-foreign-struct 
+				 "only one alignment clause allowed" 
+				 x clauses))
+	   (loop #'rest fs par proto #'a))
 	  (_ (syntax-violation 'define-foreign-struct
 			       "invalid define-foreign-struct" x clauses)))))
 
@@ -123,7 +127,7 @@
       ((k (name ctr pred) specs ...)
        (and (identifier? #'name) (identifier? #'ctr) (identifier? #'pred))
        ;; collect fields, parent and protocol
-       (with-syntax (((((type field ref set) ...) parent protocol)
+       (with-syntax (((((type field ref set) ...) parent protocol align)
 		      (datum->syntax #'k (process-clauses #'name 
 							  #'(specs ...))))
 		     (sizeof (datum->syntax #'k (->sizeof #'name)))
@@ -132,9 +136,15 @@
 		     ((this-protocol) (generate-temporaries '(this-protocol))))
 	 (with-syntax ((((types sizeofs) ...) 
 			(datum->syntax #'k (->sizeofs #'(type ...)))))
-	   #'(begin 
+	   #'(begin
+	       (define alignment-check
+		 (unless (or (not align) (memv align '(1 2 4 8 16)))
+		   (assertion-violation 'define-foreign-struct
+					"alignment must be  1, 2, 4, 8, or 16"
+					align)))
 	       (define sizeof (compute-size parent 
-					    (list (cons type sizeofs) ...)))
+					    (list (cons type sizeofs) ...)
+					    align))
 	       (define this-protocol protocol) 
 	       (define name 
 		 (let ()
@@ -161,12 +171,12 @@
 	       (define ctr (make-constructor name this-protocol))
 	       (define ref
 		 (let ((acc (type->ref 'type))
-		       (offset (compute-offset name 'field)))
+		       (offset (compute-offset name 'field align)))
 		   (lambda (o) (acc o offset))))
 	       ...
 	       (define set
 		 (let ((acc (type->set! 'type))
-		       (offset (compute-offset name 'field)))
+		       (offset (compute-offset name 'field align)))
 		   (lambda (o v) (acc o offset v))))
 	       ...
 	       ;; ugly...
@@ -282,14 +292,16 @@
 		    (if (foreign-struct-descriptor? (car l))
 			(foreign-struct-descriptor-alignment (car l))
 			(cdr l))) lis)))
-;; TODO this is just packed size so it's not correct
+
 ;; ref
 ;;  http://en.wikipedia.org/wiki/Data_structure_alignment
-(define (compute-size parent list-of-sizeofs) 
+(define (compute-size parent list-of-sizeofs alignment) 
   (define-syntax padding
     (syntax-rules ()
       ((_ o a) ;; offset align
-       (bitwise-and (- o) (- a 1)))))
+       (if (and alignment (zero? (mod o alignment)))
+	   0
+	   (bitwise-and (- o) (- a 1))))))
 
   (let ((parent-size (if parent (foreign-struct-descriptor-size parent) 0))
 	(align (if parent (foreign-struct-descriptor-alignment parent) 0)))
@@ -302,7 +314,7 @@
 	       (size parent-size))
       (if (null? sizes)
 	  ;; fixup
-	  (let ((m (- max-size 1)))
+	  (let ((m (if alignment (- alignment 1) (- max-size 1))))
 	    (bitwise-and (+ size m) (bitwise-not m)))
 	  (let ((s (car sizes)))
 	    (if (foreign-struct-descriptor? (car s))
@@ -321,22 +333,32 @@
 			(if (> ps max-size) ps max-size)
 			(+ size pad)))))))))
 
-(define (compute-offset descriptor field)
+;; FIXME I'm not sure if I'm doing correctly here but work
+;;       (tests are passing...)
+(define (compute-offset descriptor field align)
   (define-syntax offset
     (syntax-rules ()
       ((_ o a) ;; offset align
-       (bitwise-and (- (+ o a) 1) (bitwise-not (- a 1))))))
+       (let* ((off o)
+	      (ali (if align align a))
+	      (n (+ off ali)))
+	 (bitwise-and (- n 1) (bitwise-not (- ali 1)))))))
   (define-syntax padding
     (syntax-rules ()
-      ((_ o a) ;; offset align
-       (bitwise-and (- o) (- a 1)))))
+      ((_ f o a) ;; offset align
+       (let ((field f) (ali a) (off o))
+	 (if (and align
+		  (not (foreign-struct-descriptor? f))
+		  (zero? (mod off align)))
+	     0
+	     (bitwise-and (- off) (- a 1)))))))
   (define (compute-next-size size f)
     (let* ((s (cddr f))
 	   (size (+ size s))
 	   (a (if (foreign-struct-descriptor? (cadr f))
 		  (foreign-struct-descriptor-alignment (cadr f))
 		  s))
-	   (pad (padding size a)))
+	   (pad (padding (cadr f) size a)))
       (+ size pad)))
   (define parent-align (if (foreign-struct-descriptor-parent descriptor)
 			   (foreign-struct-descriptor-alignment
@@ -346,6 +368,7 @@
     (if (foreign-struct-descriptor? (cadr field))
 	(foreign-struct-descriptor-alignment (cadr field))
 	(cddr field)))
+  
   (let loop ((fields (foreign-struct-descriptor-fields descriptor))
 	     ;; well...
 	     (size (if (foreign-struct-descriptor-parent descriptor)
@@ -363,8 +386,7 @@
 		  (let ((next-size (compute-next-size size f)))
 		    (- next-size (alignment f))))
 	      (let ((next-size (compute-next-size size f)))
-		(loop (cdr fields) next-size
-		      (- next-size (alignment f)))))))))
+		(loop (cdr fields) next-size (- next-size (alignment f)))))))))
 	  
 
 (define (type->set! type)

@@ -187,6 +187,7 @@ _spec_ can be one of the followings:
 - (`fields` _field spec ..._)
 - (`protocol` _proc_)
 - (`parent` _parent-structure_)
+- (`alignment` _alignment_)
 
 The same clause can only appear once. If there are more than one the same
 clause, it raises `&syntax`.
@@ -215,6 +216,10 @@ _proc_ is a procedure which is the same usage as `define-record-type`'s one.
 _parent-structure_ must be a foreign structure defined by this macro. There
 is no actual hierarchy but just putting specified structure in front of
 this structure so that it seems it has a hierarchy. For example:
+
+_alignment_ must be an integer or integer variable of `1`, `2`, `4`, `8`
+or `16`. This specifies the struct alignment size. This is equivalent of
+`#pragma pack(n)`.
 
 ```
 (define-foreign-struct p
