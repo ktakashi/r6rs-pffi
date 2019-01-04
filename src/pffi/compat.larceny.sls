@@ -2,7 +2,7 @@
 ;;;
 ;;; src/pffi/compat.larceny.sls - Compatible layer for Larceny
 ;;;  
-;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2015-2018 Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -165,6 +165,8 @@
 	  dummy
 	  ;; element pointer of above
 	  (immutable ptr pointer-ptr)))
+(define (null-pointer? pointer) (zero? (pointer->integer pointer)))
+
 (define (void*->pointer v*)
   (let ((bv (make-bytevector size-of-pointer)))
     (if (= size-of-pointer 4)
@@ -186,17 +188,22 @@
 
 ;; we want to manage foreign procedure per shared object
 ;; so implement this here as well
-(define (pointer->void* o)
-  (if (pointer? o)
-      (pointer-ptr o)
-      o))
+(define (pointer->void* t o)
+  (define (convert o)
+    (cond ((pointer? o) (pointer-ptr o))
+	  ((bytevector? o) (convert (bytevector->pointer o)))
+	  ((string? o) (convert (string->utf8 (string-append o "\x0;"))))
+	  (else o)))
+  (case t
+    ((void*) (convert o))
+    (else o)))
 (define (%void*->pointer o)
   (if (void*? o)
       (void*->pointer o)
       o))
 
 (define (sync-pointer arg)
-  (if (pointer? arg)
+  (if (and (pointer? arg) (not (null-pointer? arg)))
       (let* ((dst (pointer-src arg))
 	     (len (bytevector-length dst)))
 	(do ((i 0 (+ i 1)))
@@ -204,13 +211,14 @@
 	  (bytevector-u8-set! dst i (pointer-ref-c-uint8 arg i))))
       arg))
 
-(define (make-foreign-invoker tramp args ret ret-conv arg-conv name)
+(define (make-foreign-invoker tramp args ret ret-conv arg-conv name arg-types)
   (lambda actual
     ;; (display name) (newline) (display actual) (newline)
     (let-values (((error? value) 
 		  (ffi/apply tramp args ret 
 			     (map (lambda (c v) (c v (symbol->string name)))
-				  arg-conv (map pointer->void* actual)))))
+				  arg-conv
+				  (map pointer->void* arg-types actual)))))
       (for-each sync-pointer actual)
       (if error?
 	  (error name "Failed to call foreign procedure" name actual)
@@ -229,7 +237,7 @@
 	     (tramp (ffi/make-callout abi addr renamed-args renamed-ret))
 	     (args (ffi/convert-arg-descriptor abi renamed-args))
 	     (ret (ffi/convert-ret-descriptor abi renamed-ret)))
-	(make-foreign-invoker tramp args ret rconv argconv name)))))
+	(make-foreign-invoker tramp args ret rconv argconv name arg-type)))))
 
 ;; maybe we should make this GC protected
 (define make-c-callback
