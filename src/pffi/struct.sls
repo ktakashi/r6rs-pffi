@@ -347,9 +347,7 @@
     (syntax-rules ()
       ((_ f o a) ;; offset align
        (let ((field f) (ali a) (off o))
-	 (if (and align
-		  (not (foreign-struct-descriptor? f))
-		  (zero? (mod off align)))
+	 (if (and align (zero? (mod off align)))
 	     0
 	     (bitwise-and (- off) (- a 1)))))))
   (define (compute-next-size size f)
@@ -375,18 +373,19 @@
 		       (foreign-struct-descriptor-size
 			(foreign-struct-descriptor-parent descriptor))
 		       0))
+	     ;; rough next offset
 	     (off (offset 0 parent-align)))
     (if (null? fields)
 	(assertion-violation 'compute-offset "invalid field name" field)
 	(let ((f (car fields)))
 	  (if (eq? field (car f))
 	      (if (foreign-struct-descriptor? (cadr f))
-		  (offset (if (zero? off) off (+ off 1))
-			  (foreign-struct-descriptor-alignment (cadr f)))
+		  (offset off (foreign-struct-descriptor-alignment (cadr f)))
 		  (let ((next-size (compute-next-size size f)))
 		    (- next-size (alignment f))))
 	      (let ((next-size (compute-next-size size f)))
-		(loop (cdr fields) next-size (- next-size (alignment f)))))))))
+		;; rough next offset = current offset + next-size
+		(loop (cdr fields) next-size (+ off next-size))))))))
 	  
 
 (define (type->set! type)
@@ -394,7 +393,7 @@
 	(else (assertion-violation 'type->set! "unknown type" type))))
 (define (type->ref type)
   (cond ((hashtable-ref *struct-ref* type #f))
-	(else (assertion-violation 'type->set! "unknown type" type))))
+	(else (assertion-violation 'type->ref "unknown type" type))))
 
 ;; descriptor for convenience
 (define-record-type foreign-struct-descriptor
