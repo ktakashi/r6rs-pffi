@@ -142,27 +142,27 @@
 		   (assertion-violation 'define-foreign-struct
 					"alignment must be  1, 2, 4, 8, or 16"
 					align)))
-	       (define sizeof (compute-size parent 
+	       (define sizeof (compute-size parent
 					    (list (cons type sizeofs) ...)
 					    align))
 	       (define this-protocol protocol) 
 	       (define name 
-		 (let ()
-		   (hashtable-set! *struct-set!* 'name
-				   (lambda (o offset v)
-				     (bytevector-copy! v 0 o offset sizeof)))
-		   (hashtable-set! *struct-ref* 'name
-				   (lambda (o offset)
-				     (let ((bv (make-bytevector sizeof)))
-				       (bytevector-copy! o offset bv 0 sizeof)
-				       bv)))
-		   (make-foreign-struct-descriptor 
-		    'name
-		    sizeof
-		    (struct-alignment (list (cons type sizeofs) ...))
-		    (list (cons* 'field types sizeofs) ...)
-		    parent
-		    (if this-protocol #t #f))))
+		 (make-foreign-struct-descriptor 
+		  'name
+		  sizeof
+		  (struct-alignment (list (cons type sizeofs) ...))
+		  (list (cons* 'field types sizeofs) ...)
+		  parent
+		  (if this-protocol #t #f)
+		  ;; type-ref
+		  (lambda (o offset)
+		    (let ((bv (make-bytevector sizeof)))
+		      (bytevector-copy! o offset bv 0 sizeof)
+		      bv))
+		  ;; type-set!
+		  (lambda (o offset v)
+		    (bytevector-copy! v 0 o offset sizeof))))
+	       
 	       ;; TODO sub struct
 	       (define (pred o) 
 		 (and (bytevector? o) 
@@ -170,12 +170,12 @@
 	       ;; TODO handle protocol
 	       (define ctr (make-constructor name this-protocol))
 	       (define ref
-		 (let ((acc (type->ref 'type))
+		 (let ((acc (type->ref type))
 		       (offset (compute-offset name 'field align)))
 		   (lambda (o) (acc o offset))))
 	       ...
 	       (define set
-		 (let ((acc (type->set! 'type))
+		 (let ((acc (type->set! type))
 		       (offset (compute-offset name 'field align)))
 		   (lambda (o v) (acc o offset v))))
 	       ...
@@ -388,12 +388,39 @@
 		(loop (cdr fields) next-size (+ off next-size))))))))
 	  
 
-(define (type->set! type)
-  (cond ((hashtable-ref *struct-set!* type #f))
-	(else (assertion-violation 'type->set! "unknown type" type))))
-(define (type->ref type)
-  (cond ((hashtable-ref *struct-ref* type #f))
-	(else (assertion-violation 'type->ref "unknown type" type))))
+(define-syntax type->set!
+  (lambda (x)
+    (define (->set! k type)
+      (let ((n (syntax->datum type)))
+	(if (memq n '(char unsigned-char short unsigned-short int unsigned-int
+		      long unsigned-long float double 
+		      int8_t uint8_t int16_t uint16_t
+		      int32_t uint32_t int64_t uint64_t pointer))
+	    (datum->syntax k
+	     (string->symbol (string-append (symbol->string n) "-set!")))
+	    ;; We need syntax context of the given type,
+	    ;; so use with-syntax here to keep it.
+	    (with-syntax ((t type))
+	      #'(foreign-struct-descriptor-type-set! t)))))
+    (syntax-case x ()
+      ((k type)
+       (->set! #'k #'type)))))
+(define-syntax type->ref
+  (lambda (x)
+    (define (->ref k type)
+      (let ((n (syntax->datum type)))
+	(if (memq n '(char unsigned-char short unsigned-short int unsigned-int
+		      long unsigned-long float double 
+		      int8_t uint8_t int16_t uint16_t
+		      int32_t uint32_t int64_t uint64_t pointer))
+	    (datum->syntax k
+	     (string->symbol (string-append (symbol->string n) "-ref")))
+	    ;; We need syntax context of the given type,
+	    ;; so use with-syntax here to keep it.
+	    (with-syntax ((t type))
+	      #'(foreign-struct-descriptor-type-ref t)))))
+    (syntax-case x ()
+      ((k type) (->ref #'k #'type)))))
 
 ;; descriptor for convenience
 (define-record-type foreign-struct-descriptor
@@ -407,74 +434,63 @@
 	  (mutable setters)
 	  (mutable protocol)
 	  has-protocol?
-	  (mutable ctr))
+	  (mutable ctr)
+	  type-ref
+	  type-set!)
   (protocol (lambda (n)
-	      (lambda (nm s a f p p?)
-		(n nm s a f p #f #f #f p? #f)))))
+	      (lambda (nm s a f p p? ref set)
+		(n nm s a f p #f #f #f p? #f ref set)))))
 
-(define *struct-ref*
-  (let ((ht (make-eq-hashtable)))
-    (hashtable-set! ht 'char bytevector-s8-ref)
-    (hashtable-set! ht 'unsigned-char bytevector-u8-ref)
-    (hashtable-set! ht 'short bytevector-s16-native-ref)
-    (hashtable-set! ht 'unsigned-short bytevector-u16-native-ref)
-    (hashtable-set! ht 'int bytevector-s32-native-ref)
-    (hashtable-set! ht 'unsigned-int bytevector-u32-native-ref)
-    (hashtable-set! ht 'long (if (= size-of-long 4)
-				 bytevector-s32-native-ref
-				 bytevector-s64-native-ref))
-    (hashtable-set! ht 'unsigned-long (if (= size-of-long 4)
-					  bytevector-u32-native-ref
-					  bytevector-u64-native-ref))
-    (hashtable-set! ht 'float bytevector-ieee-single-native-ref)
-    (hashtable-set! ht 'double bytevector-ieee-double-native-ref)
-    (hashtable-set! ht 'int8_t bytevector-s8-ref)
-    (hashtable-set! ht 'uint8_t bytevector-u8-ref)
-    (hashtable-set! ht 'int16_t bytevector-s16-native-ref)
-    (hashtable-set! ht 'uint16_t bytevector-u16-native-ref)
-    (hashtable-set! ht 'int32_t bytevector-s32-native-ref)
-    (hashtable-set! ht 'uint32_t bytevector-u32-native-ref)
-    (hashtable-set! ht 'int64_t bytevector-s64-native-ref)
-    (hashtable-set! ht 'uint64_t bytevector-u64-native-ref)
-    (hashtable-set! ht 'pointer
-		    (lambda (o offset)
-		      (integer->pointer
-		       (if (= size-of-pointer 4)
-			   (bytevector-u32-ref o offset (native-endianness))
-			   (bytevector-u64-ref o offset (native-endianness))))))
-    ht))
+(define char-ref           bytevector-s8-ref)
+(define unsigned-char-ref  bytevector-u8-ref)
+(define short-ref          bytevector-s16-native-ref)
+(define unsigned-short-ref bytevector-u16-native-ref)
+(define int-ref            bytevector-s32-native-ref)
+(define unsigned-int-ref   bytevector-u32-native-ref)
+(define long-ref
+  (if (= size-of-long 4) bytevector-s32-native-ref bytevector-s64-native-ref))
+(define unsigned-long-ref
+  (if (= size-of-long 4) bytevector-u32-native-ref bytevector-u64-native-ref))
+(define float-ref          bytevector-ieee-single-native-ref)
+(define double-ref         bytevector-ieee-double-native-ref)
+(define int8_t-ref         bytevector-s8-ref)
+(define uint8_t-ref        bytevector-u8-ref)
+(define int16_t-ref        bytevector-s16-native-ref)
+(define uint16_t-ref       bytevector-u16-native-ref)
+(define int32_t-ref        bytevector-s32-native-ref)
+(define uint32_t-ref       bytevector-u32-native-ref)
+(define int64_t-ref        bytevector-s64-native-ref)
+(define uint64_t-ref       bytevector-u64-native-ref)
+(define (pointer-ref o offset)
+  (integer->pointer
+   (if (= size-of-pointer 4)
+       (bytevector-u32-ref o offset (native-endianness))
+       (bytevector-u64-ref o offset (native-endianness)))))
 
-(define *struct-set!*
-  (let ((ht (make-eq-hashtable)))
-    (hashtable-set! ht 'char bytevector-s8-set!)
-    (hashtable-set! ht 'unsigned-char bytevector-u8-set!)
-    (hashtable-set! ht 'short bytevector-s16-native-set!)
-    (hashtable-set! ht 'unsigned-short bytevector-u16-native-set!)
-    (hashtable-set! ht 'int bytevector-s32-native-set!)
-    (hashtable-set! ht 'unsigned-int bytevector-u32-native-set!)
-    (hashtable-set! ht 'long (if (= size-of-long 4)
-				 bytevector-s32-native-set!
-				 bytevector-s64-native-set!))
-    (hashtable-set! ht 'unsigned-long (if (= size-of-long 4)
-					  bytevector-u32-native-set!
-					  bytevector-u64-native-set!))
-    (hashtable-set! ht 'float bytevector-ieee-single-native-set!)
-    (hashtable-set! ht 'double bytevector-ieee-double-native-set!)
-    (hashtable-set! ht 'int8_t bytevector-s8-set!)
-    (hashtable-set! ht 'uint8_t bytevector-u8-set!)
-    (hashtable-set! ht 'int16_t bytevector-s16-native-set!)
-    (hashtable-set! ht 'uint16_t bytevector-u16-native-set!)
-    (hashtable-set! ht 'int32_t bytevector-s32-native-set!)
-    (hashtable-set! ht 'uint32_t bytevector-u32-native-set!)
-    (hashtable-set! ht 'int64_t bytevector-s64-native-set!)
-    (hashtable-set! ht 'uint64_t bytevector-u64-native-set!)
-    (hashtable-set! ht 'pointer
-		    (lambda (o offset v)
-		      (let ((bv (uint-list->bytevector 
-				 (list (pointer->integer v))
-				 (native-endianness)
-				 size-of-pointer)))
-			(bytevector-copy! bv 0 o offset size-of-pointer))))
-    ht))
-
-    )
+(define char-set!           bytevector-s8-set!)
+(define unsigned-char-set!  bytevector-u8-set!)
+(define short-set!          bytevector-s16-native-set!)
+(define unsigned-short-set! bytevector-u16-native-set!)
+(define int-set!            bytevector-s32-native-set!)
+(define unsigned-int-set!   bytevector-u32-native-set!)
+(define long-set!
+  (if (= size-of-long 4) bytevector-s32-native-set! bytevector-s64-native-set!))
+(define unsigned-long-set!
+  (if (= size-of-long 4) bytevector-u32-native-set! bytevector-u64-native-set!))
+(define float-set!          bytevector-ieee-single-native-set!)
+(define double-set!         bytevector-ieee-double-native-set!)
+(define int8_t-set!         bytevector-s8-set!)
+(define uint8_t-set!        bytevector-u8-set!)
+(define int16_t-set!        bytevector-s16-native-set!)
+(define uint16_t-set!       bytevector-u16-native-set!)
+(define int32_t-set!        bytevector-s32-native-set!)
+(define uint32_t-set!       bytevector-u32-native-set!)
+(define int64_t-set!        bytevector-s64-native-set!)
+(define uint64_t-set!       bytevector-u64-native-set!)
+(define (pointer-set! o offset v)
+  (let ((bv (uint-list->bytevector 
+	     (list (pointer->integer v))
+	     (native-endianness)
+	     size-of-pointer)))
+    (bytevector-copy! bv 0 o offset size-of-pointer)))
+)
