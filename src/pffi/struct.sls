@@ -37,7 +37,8 @@
 ;; to a pointer by bytevector->pointer.
 
 (library (pffi struct)
-    (export define-foreign-struct)
+    (export define-foreign-struct
+	    define-foreign-union)
     (import (rnrs)
 	    (pffi compat)
 	    (only (pffi misc) take drop split-at))
@@ -178,6 +179,152 @@
 		 (let ((acc (type->set! type))
 		       (offset (compute-offset name 'field align)))
 		   (lambda (o v) (acc o offset v))))
+	       ...
+	       ;; ugly...
+	       (define dummy 
+		 (begin
+		   (foreign-struct-descriptor-getters-set! name (list ref ...))
+		   (foreign-struct-descriptor-setters-set! name (list set ...))
+		   (foreign-struct-descriptor-ctr-set! name ctr)
+		   (foreign-struct-descriptor-protocol-set! name 
+		    (or this-protocol (default-protocol name)))))
+	       )
+	   )))
+      ((k name specs ...)
+       (identifier? #'name)
+       (with-syntax (((ctr pred) (datum->syntax #'k (->ctr&pred #'name))))
+	 #'(k (name ctr pred) specs ...))))))
+
+(define-syntax define-foreign-union
+  (lambda (x)
+    (define (->ctr&pred name)
+      (let ((base (symbol->string (syntax->datum name))))
+	(list (string->symbol (string-append "make-" base))
+	      (string->symbol (string-append base "?")))))
+    (define (process-clauses struct-name clauses)
+      (define sname (symbol->string (syntax->datum struct-name)))
+      (define d syntax->datum)
+      (define (process-fields fields)
+	(define (ref name)
+	  (string->symbol 
+	   (string-append sname "-" (symbol->string (syntax->datum name)))))
+	(define (set name)
+	  (string->symbol 
+	   (string-append sname "-" (symbol->string (syntax->datum name))
+			  "-set!")))
+	(let loop ((fields fields) (r '()))
+	  (syntax-case fields ()
+	    (() (reverse r))
+	    (((type name) . rest)
+	     (loop #'rest 
+		   (cons (list (d #'type) (d  #'name)
+			       (ref #'name) (set #'name)) r)))
+	    (((type name ref) . rest)
+	     (loop #'rest 
+		   (cons (list (d #'type) (d #'name) (d #'ref)
+			       (set #'name)) r)))
+	    (((type name ref set) . rest)
+	     (loop #'rest
+		   (cons (list (d #'type) (d #'name) (d #'ref) (d #'set))
+			 r))))))
+      (let loop ((clauses clauses) (fs #f) (proto #f))
+	(syntax-case clauses (fields protocol)
+	  (() (list fs proto))
+	  (((fields defs ...) . rest)
+	   (or (not fs)
+	       (syntax-violation 'define-foreign-struct 
+				 "only one fields clause allowed" 
+				 x clauses))
+	   (loop #'rest (process-fields #'(defs ...)) proto))
+	  (((protocol p) . rest)
+	   (or (not proto)
+	       (syntax-violation 'define-foreign-struct 
+				 "only one protocol clause allowed" 
+				 x clauses))
+	   (loop #'rest fs (d #'p)))
+	  (_ (syntax-violation 'define-foreign-struct
+			       "invalid define-foreign-struct" x clauses)))))
+
+    (define (->sizeof type)
+      (string->symbol (string-append "size-of-"
+				     (symbol->string (syntax->datum type)))))
+    (define (->sizeofs types)
+      (let loop ((types types) (r '()))
+	(syntax-case types ()
+	  (() (reverse r))
+	  ((a . d) (loop #'d (cons (list (syntax->datum #'a) 
+					 (->sizeof #'a)) r))))))
+
+    (syntax-case x ()
+      ((k (name ctr pred) specs ...)
+       (and (identifier? #'name) (identifier? #'ctr) (identifier? #'pred))
+       ;; collect fields, parent and protocol
+       (with-syntax (((((type field ref set) ...) protocol)
+		      (datum->syntax #'k (process-clauses #'name 
+							  #'(specs ...))))
+		     (sizeof (datum->syntax #'k (->sizeof #'name)))
+		     ;; To avoid Guile's bug.
+		     ;; this isn't needed if macro expander works *properly*
+		     ((this-protocol) (generate-temporaries '(this-protocol))))
+	 (with-syntax ((((types sizeofs) ...) 
+			(datum->syntax #'k (->sizeofs #'(type ...)))))
+	   #'(begin
+	       (define sizeof
+		 ;; the same as alignment :)
+		 (struct-alignment (list (cons type sizeofs) ...)))
+	       (define this-protocol protocol)
+	       (define name 
+		 (make-foreign-struct-descriptor 
+		  'name
+		  sizeof
+		  (struct-alignment (list (cons type sizeofs) ...))
+		  ;; only one field so dummy
+		  (list (cons* 'dummy 'name sizeof))
+		  #f
+		  (if this-protocol #t #f)
+		  ;; type-ref
+		  (lambda (o offset)
+		    (let ((bv (make-bytevector sizeof)))
+		      (bytevector-copy! o offset bv 0 sizeof)
+		      bv))
+		  ;; type-set!
+		  (lambda (o offset v)
+		    (bytevector-copy! v 0 o offset sizeof))))
+	       ;; sub struct
+	       (define (pred o) 
+		 (and (bytevector? o) 
+		      (>= (bytevector-length o) sizeof)))
+	       (define ctr
+		 (let ()
+		   (define fields '(field ...))
+		   (define (custom-ctr . field&value)
+		     (define f
+		       (and (not (null? field&value)) (car field&value)))
+		     (define v
+		       (and (not (null? field&value))
+			    (not (null? (cdr field&value)))
+			    (cadr field&value)))
+		     (define setters
+		       (foreign-struct-descriptor-setters name))
+		     (let ((r (make-bytevector sizeof 0)))
+		       ;; a bit inefficient...
+		       (when (and f v)
+			 (do ((i 0 (+ i 1)) (f* fields (cdr f*)))
+			     ((or (null? f*) (eq? (car f*) f))
+			      (unless (null? f*)
+				(let ((s (list-ref setters i)))
+				  (s r v))))))
+		       r))
+		   (if this-protocol
+		       (this-protocol custom-ctr)
+		       (lambda () (make-bytevector sizeof 0)))))
+	       (define ref
+		 (let ((acc (type->ref type)))
+		   (lambda (o) (acc o 0))))
+	       ...
+	       (define set
+		 (let ((acc (type->set! type)))
+		   (lambda (o v) (acc o 0 v))))
 	       ...
 	       ;; ugly...
 	       (define dummy 

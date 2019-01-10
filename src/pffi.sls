@@ -117,7 +117,7 @@
 
 	    ;; struct
 	    define-foreign-struct
-	    
+	    define-foreign-union
 	    )
     (import (pffi procedure)
 	    (pffi variable)

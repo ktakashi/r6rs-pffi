@@ -233,11 +233,11 @@
   (test-equal #vu8(1 2 3) (pointer->bytevector (id-str #vu8(1 2 3)) 3)))
 
 ;; alignment
+(define (?p p8 p4)
+  (if (= size-of-pointer 8)
+      p8
+      p4))
 (let ()
-  (define (?p p8 p4)
-    (if (= size-of-pointer 8)
-	p8
-	p4))
   (define-foreign-struct packed
     (fields (char c) (short s) (pointer p))
     (alignment 4))
@@ -274,4 +274,42 @@
       (test-equal "mixed-packed-p" p (mixed-packed-p m))
       (test-equal "mixed-packed-np" np (mixed-packed-np m)))))
 
+;; union
+(let ()
+  (define-foreign-struct a-st
+    (fields (short s1)
+	    (short s2)))
+  (define-foreign-union a-union
+    (fields (int i)     ;; 4
+	    (pointer p) ;; 4 or 8
+	    (a-st st)))
+  (test-equal "union size (1)" size-of-pointer size-of-a-union)
+  (let ((bv (make-a-union)))
+    (test-assert "a-union? (1)" (a-union? bv))
+    (test-assert "a-union-i-set (1)" (a-union-i-set! bv 1))
+    (test-equal "a-union-p (1)" 1 (pointer->integer (a-union-p bv)))
+
+    (test-equal "a-st-s1 (1)" 1 (a-st-s1 (a-union-st bv)))
+    (test-equal "a-st-s2 (1)" 0 (a-st-s2 (a-union-st bv)))))
+
+(let ()
+  (define-foreign-struct a-st
+    (fields (short s1)
+	    (short s2)))
+  (define-foreign-union a-union
+    (fields (int i)     ;; 4
+	    (pointer p) ;; 4 or 8
+	    (a-st st))
+    (protocol (lambda (p)
+		(lambda (i)
+		  (p 'i i)))))
+  (test-equal "union size (2)" size-of-pointer size-of-a-union)
+  (let ((bv (make-a-union 2)))
+    (test-assert "a-union? (2)" (a-union? bv))
+    ;;(test-assert "a-union-i-set" (a-union-i-set! bv 1))
+    (test-equal "a-union-p (2)" 2 (pointer->integer (a-union-p bv)))
+
+    (test-equal "a-st-s1 (2)" 2 (a-st-s1 (a-union-st bv)))
+    (test-equal "a-st-s2 (2)" 0 (a-st-s2 (a-union-st bv)))))
+  
 (test-end)

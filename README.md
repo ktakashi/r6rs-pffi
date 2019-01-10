@@ -169,7 +169,7 @@ on _offset_ location. _offset_ is byte offset of the given _p_.
 #### [Macro] `define-foreign-struct` _name_ _spec ..._
 #### [Macro] `define-foreign-struct` (_name_ _ctr_ _pred_) _spec ..._
 
-Defines structure. The macro creates constructor, predicate, size-of 
+Defines a structure. The macro creates constructor, predicate, size-of 
 variable and accessors.
 
 _ctr_ is the constructor which returns newly allocated bytevector whose
@@ -249,6 +249,31 @@ is the same as the following
 
 If the first form is used, then _ctr_ and _pred_ are created by adding `make-`
 prefix and `?` suffix respectively, like `define-record-type`. 
+
+#### [Macro] `define-foreign-union` _name_ _spec ..._
+
+Defines a union structure. The macro creates constructor, predicate, size-of 
+variable and accessors. The auto generating convension is the same as
+`define-foreign-struct` unless its specified.
+
+The _spec_ can be one of the followings:
+
+- (`fields` _field spec ..._)
+- (`protocol` _proc_)
+
+The `fields` is the same as `define-foreign-struct`.
+
+The _proc_ of `protocol` should look like this:
+
+```scheme
+(lambda (p)
+  (lamba (f)
+    (p 'f f)))
+```
+The _p_ takes 0 or 2 arguments. If the first form is used, then it creates
+0 padded bytevector. If the second form is used, then it searches the
+field setter named *f* and sets the value _f_. If it's not found, then
+it behave as if nothing is passed.
 
 
 ## Supporting implementations
