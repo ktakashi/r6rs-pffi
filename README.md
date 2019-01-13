@@ -7,7 +7,7 @@ PFFI is a portable foreign function interface for R6RS Scheme implementations.
 
 Suppose we have the following C file and will be compiled to `libfoo.so`
 
-```
+```c
 int add(int a, int b)
 {
   return a + b;
@@ -16,7 +16,7 @@ int add(int a, int b)
 
 Now we want to use the above shared object from Scheme.
 
-```
+```scheme
 #!r6rs
 (import (rnrs) (pffi))
 
@@ -39,6 +39,7 @@ accessing.
 
 
 #### [Procedure] `open-shared-object` _shared-object-name_
+
 Returns shared object.
 
 #### [Macro] `foreign-procedure` _shared-object_ _return-type_ _symbol-name_ (_types_ ...)
@@ -48,11 +49,13 @@ foreign procedure. A foreign procedure is a mere procedure so users can just
 call as if it's a Scheme procedure.
 
 #### [Macro] `c-callback` _return-type_ (_types_ ...) _proc_
+
 Creates a callback. Callback is a mechanism that makes foreign procedure
 call Scheme procedure. The given _proc_ is the procedure called from
 foreign procedure.
 
 #### [Procedure] `free-c-callback` _callback_
+
 Release allocated callback if needed.
 
 Callback object may not be released automatically so it is user's responsibilty
@@ -169,7 +172,7 @@ on _offset_ location. _offset_ is byte offset of the given _p_.
 #### [Macro] `define-foreign-struct` _name_ _spec ..._
 #### [Macro] `define-foreign-struct` (_name_ _ctr_ _pred_) _spec ..._
 
-Defines a structure. The macro creates constructor, predicate, size-of 
+Defines a structure. The macro creates constructor, predicate, size-of
 variable and accessors.
 
 _ctr_ is the constructor which returns newly allocated bytevector whose
@@ -211,7 +214,7 @@ _setter_ is an accessor to set the structure field value. If this is not
 specified, then it is created by adding `_name_-` prefix and `-set!` suffix
 to  _field_.
 
-_proc_ is a procedure which is the same usage as `define-record-type`'s one. 
+_proc_ is a procedure which is the same usage as `define-record-type`'s one.
 
 _parent-structure_ must be a foreign structure defined by this macro. There
 is no actual hierarchy but just putting specified structure in front of
@@ -221,38 +224,40 @@ _alignment_ must be an integer or integer variable of `1`, `2`, `4`, `8`
 or `16`. This specifies the struct alignment size. This is equivalent of
 `#pragma pack(n)`.
 
-```
+```scheme
 (define-foreign-struct p
   (fields (int count)))
+
 (define-foreign-struct c
   (fields (pointer elements))
   (parent p))
 
-(make-c 0 (integer->pointer 0)) 
+(make-c 0 (integer->pointer 0))
 ;; 32 bits -> #vu8(0 0 0 0 0 0 0 0)
 ;; 64 bits -> #vu8(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
 ```
 
 is the same as the following
 
-```
+```scheme
 (define-foreign-struct p
   (fields (int count)))
+
 (define-foreign-struct c
   (fields (p p)
           (pointer elements)))
 
-(make-c (make-p 0) (integer->pointer 0)) 
+(make-c (make-p 0) (integer->pointer 0))
 ;; 32 bits -> #vu8(0 0 0 0 0 0 0 0)
 ;; 64 bits -> #vu8(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
 ```
 
 If the first form is used, then _ctr_ and _pred_ are created by adding `make-`
-prefix and `?` suffix respectively, like `define-record-type`. 
+prefix and `?` suffix respectively, like `define-record-type`.
 
 #### [Macro] `define-foreign-union` _name_ _spec ..._
 
-Defines a union structure. The macro creates constructor, predicate, size-of 
+Defines a union structure. The macro creates constructor, predicate, size-of
 variable and accessors. The auto generating convension is the same as
 `define-foreign-struct` unless its specified.
 
@@ -294,7 +299,7 @@ Vicare doesn't support bytevector to pointer convertion whom converted
 pointer is shared with source bytevector. So this behaviour is emulated
 on this library. This emulation doesn't work on NULL pointer. So the
 following situation doesn't work:
-Suppose a shared object set a pointer value to NULL, then initialise it 
+Suppose a shared object set a pointer value to NULL, then initialise it
 on a function. Scheme code first loads the pointer, then call the
 initialisation function, however the loaded pointer still indicates NULL.
 
