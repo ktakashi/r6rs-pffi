@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
 ;;; src/pffi/compat.mzscheme.sls - Compatible layer for Racket
-;;;  
+;;;
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; this file provides compatible layer for (pffi procedure)
 ;; if implementations can't make this layer, then make
@@ -36,91 +36,91 @@
 #!r6rs
 (library (pffi compat)
     (export open-shared-object
-	    lookup-shared-object
+            lookup-shared-object
 
-	    make-c-function
-	    make-c-callback
-	    free-c-callback
+            make-c-function
+            make-c-callback
+            free-c-callback
 
-	    ;; primitive types
-	    char  unsigned-char
-	    short unsigned-short
-	    int   unsigned-int
-	    long  unsigned-long
-	    float double
-	    int8_t  uint8_t
-	    int16_t uint16_t
-	    int32_t uint32_t
-	    int64_t uint64_t
-	    pointer callback
-	    void
-	    
-	    ;; pointer ref
-	    pointer-ref-c-uint8
-	    pointer-ref-c-int8
-	    pointer-ref-c-uint16
-	    pointer-ref-c-int16
-	    pointer-ref-c-uint32
-	    pointer-ref-c-int32
-	    pointer-ref-c-uint64
-	    pointer-ref-c-int64
-	    pointer-ref-c-unsigned-char
-	    pointer-ref-c-char
-	    pointer-ref-c-unsigned-short
-	    pointer-ref-c-short
-	    pointer-ref-c-unsigned-int
-	    pointer-ref-c-int
-	    pointer-ref-c-unsigned-long
-	    pointer-ref-c-long
-	    pointer-ref-c-float
-	    pointer-ref-c-double
-	    pointer-ref-c-pointer
+            ;; primitive types
+            char  unsigned-char
+            short unsigned-short
+            int   unsigned-int
+            long  unsigned-long
+            float double
+            int8_t  uint8_t
+            int16_t uint16_t
+            int32_t uint32_t
+            int64_t uint64_t
+            pointer callback
+            void
 
-	    ;; pointer set
-	    pointer-set-c-uint8!
-	    pointer-set-c-int8!
-	    pointer-set-c-uint16!
-	    pointer-set-c-int16!
-	    pointer-set-c-uint32!
-	    pointer-set-c-int32!
-	    pointer-set-c-uint64!
-	    pointer-set-c-int64!
-	    pointer-set-c-unsigned-char!
-	    pointer-set-c-char!
-	    pointer-set-c-unsigned-short!
-	    pointer-set-c-short!
-	    pointer-set-c-unsigned-int!
-	    pointer-set-c-int!
-	    pointer-set-c-unsigned-long!
-	    pointer-set-c-long!
-	    pointer-set-c-float!
-	    pointer-set-c-double!
-	    pointer-set-c-pointer!
+            ;; pointer ref
+            pointer-ref-c-uint8
+            pointer-ref-c-int8
+            pointer-ref-c-uint16
+            pointer-ref-c-int16
+            pointer-ref-c-uint32
+            pointer-ref-c-int32
+            pointer-ref-c-uint64
+            pointer-ref-c-int64
+            pointer-ref-c-unsigned-char
+            pointer-ref-c-char
+            pointer-ref-c-unsigned-short
+            pointer-ref-c-short
+            pointer-ref-c-unsigned-int
+            pointer-ref-c-int
+            pointer-ref-c-unsigned-long
+            pointer-ref-c-long
+            pointer-ref-c-float
+            pointer-ref-c-double
+            pointer-ref-c-pointer
 
-	    size-of-char
-	    size-of-short
-	    size-of-int
-	    size-of-long
-	    size-of-float
-	    size-of-double
-	    size-of-pointer
-	    size-of-int8_t
-	    size-of-int16_t
-	    size-of-int32_t
-	    size-of-int64_t
+            ;; pointer set
+            pointer-set-c-uint8!
+            pointer-set-c-int8!
+            pointer-set-c-uint16!
+            pointer-set-c-int16!
+            pointer-set-c-uint32!
+            pointer-set-c-int32!
+            pointer-set-c-uint64!
+            pointer-set-c-int64!
+            pointer-set-c-unsigned-char!
+            pointer-set-c-char!
+            pointer-set-c-unsigned-short!
+            pointer-set-c-short!
+            pointer-set-c-unsigned-int!
+            pointer-set-c-int!
+            pointer-set-c-unsigned-long!
+            pointer-set-c-long!
+            pointer-set-c-float!
+            pointer-set-c-double!
+            pointer-set-c-pointer!
 
-	    (rename (cpointer? pointer?))
-	    bytevector->pointer
-	    pointer->bytevector
-	    pointer->integer
-	    integer->pointer
-	    )
+            size-of-char
+            size-of-short
+            size-of-int
+            size-of-long
+            size-of-float
+            size-of-double
+            size-of-pointer
+            size-of-int8_t
+            size-of-int16_t
+            size-of-int32_t
+            size-of-int64_t
+
+            (rename (cpointer? pointer?))
+            bytevector->pointer
+            pointer->bytevector
+            pointer->integer
+            integer->pointer
+            )
     (import (rnrs)
-	    (ffi unsafe)
-	    (ffi vector)
-	    (rename (only (racket base) cons) (cons icons))
-	    (only (srfi :13) string-index-right))
- 
+            (ffi unsafe)
+            (ffi vector)
+            (rename (only (racket base) cons) (cons icons))
+            (only (srfi :13) string-index-right))
+
 (define char           _sint8)
 (define unsigned-char  _uint8)
 (define short          _sshort)
@@ -159,9 +159,9 @@
 
 (define (open-shared-object path)
   (let* ((index (string-index-right path #\.))
-	 (file (if index
-		   (substring path 0 index)
-		   path)))
+         (file (if index
+                   (substring path 0 index)
+                   path)))
     (ffi-lib file)))
 
 (define (lookup-shared-object lib name)
@@ -173,18 +173,18 @@
 (define (->immutable-list p)
   (let loop ((p p))
     (cond ((null? p) p)
-	  ((pair? p) (icons (car p) (loop (cdr p))))
-	  (else p))))
-	
+          ((pair? p) (icons (car p) (loop (cdr p))))
+          (else p))))
+
 
 (define (make-c-function lib ret name arg-type)
   ;; TODO failure thunk, what should we do when it couldn't be found
-  (get-ffi-obj (symbol->string name) lib 
-	       ;; DAMN YOU MORON!!!
-	       ;; seems this doesn't accept mutable pairs
-	       ;; so convert it.
-	       (_cprocedure (->immutable-list arg-type) ret)
-	       (lambda () (error 'make-c-function "not found" name))))
+  (get-ffi-obj (symbol->string name) lib
+               ;; DAMN YOU MORON!!!
+               ;; seems this doesn't accept mutable pairs
+               ;; so convert it.
+               (_cprocedure (->immutable-list arg-type) ret)
+               (lambda () (error 'make-c-function "not found" name))))
 
 (define (make-c-callback ret args proc) proc)
 
@@ -196,29 +196,29 @@
   (lambda (x)
     (define (gen-name t)
       (let ((s (symbol->string (syntax->datum t))))
-	(list (string->symbol (string-append "size-of-" s))
-	      (string->symbol (string-append "pointer-ref-c-" s))
-	      (string->symbol (string-append "pointer-set-c-" s "!")))))
+        (list (string->symbol (string-append "size-of-" s))
+              (string->symbol (string-append "pointer-ref-c-" s))
+              (string->symbol (string-append "pointer-set-c-" s "!")))))
     (syntax-case x ()
       ((k type ->bv)
        (with-syntax (((size ref set!) (datum->syntax #'k (gen-name #'type))))
-	 #'(begin
-	     ;; ref/set as a byte so that we can specify detailed offset
-	     ;; e.g. 
-	     ;;  (pointer-ref-c-uint64 p 1)
-	     ;;  will refer a value from one byte offset
-	     (define (ref ptr offset)
-	       (let ((bv (make-bytevector size)))
-		 (do ((i 0 (+ i 1)))
-		     ((= i size) (ptr-ref bv type 0))
-		   (bytevector-u8-set! bv i
-		       (ptr-ref ptr unsigned-char (+ i offset))))))
-	     (define (set! ptr offset value)
-	       (let ((bv (->bv value)))
-		 (do ((len (bytevector-length bv)) (i 0 (+ i 1)))
-		     ((= i len))
-		   (ptr-set! ptr unsigned-char (+ offset i)
-			     (bytevector-u8-ref bv i)))))))))))
+         #'(begin
+             ;; ref/set as a byte so that we can specify detailed offset
+             ;; e.g.
+             ;;  (pointer-ref-c-uint64 p 1)
+             ;;  will refer a value from one byte offset
+             (define (ref ptr offset)
+               (let ((bv (make-bytevector size)))
+                 (do ((i 0 (+ i 1)))
+                     ((= i size) (ptr-ref bv type 0))
+                   (bytevector-u8-set! bv i
+                       (ptr-ref ptr unsigned-char (+ i offset))))))
+             (define (set! ptr offset value)
+               (let ((bv (->bv value)))
+                 (do ((len (bytevector-length bv)) (i 0 (+ i 1)))
+                     ((= i len))
+                   (ptr-set! ptr unsigned-char (+ offset i)
+                             (bytevector-u8-ref bv i)))))))))))
 
 (define-syntax define-uint->bv
   (syntax-rules ()
@@ -269,29 +269,29 @@
 (define-deref int64 s64->bv)
 (define-deref uint64 u64->bv)
 
-(define (pointer-ref-c-pointer p offset) 
+(define (pointer-ref-c-pointer p offset)
   (let ((bv (make-bytevector size-of-pointer)))
     (do ((i 0 (+ i 1)))
-	((= i size-of-pointer) (ptr-ref bv pointer 0))
+        ((= i size-of-pointer) (ptr-ref bv pointer 0))
       (bytevector-u8-set! bv i (pointer-ref-c-uint8 p (+ i offset))))))
-(define (pointer-set-c-pointer! p offset v) 
+(define (pointer-set-c-pointer! p offset v)
   (let* ((pv (pointer->integer v))
-	 (bv (uint-list->bytevector (list pv) 
-				    (native-endianness) size-of-pointer)))
+         (bv (uint-list->bytevector (list pv)
+                                    (native-endianness) size-of-pointer)))
     (do ((i 0 (+ i 1)))
-	((= i size-of-pointer))
+        ((= i size-of-pointer))
       (pointer-set-c-uint8! p (+ i offset) (bytevector-u8-ref bv i)))))
 
 (define-syntax define-sizeof
   (lambda (x)
     (define (gen-name t)
       (let ((s (symbol->string (syntax->datum t))))
-	(string->symbol (string-append "size-of-" s))))
+        (string->symbol (string-append "size-of-" s))))
     (syntax-case x ()
       ((k type)
        (with-syntax ((name (datum->syntax #'k (gen-name #'type))))
-	 #'(define name
-	     (ctype-sizeof type)))))))
+         #'(define name
+             (ctype-sizeof type)))))))
 (define-sizeof char)
 (define-sizeof short)
 (define-sizeof int)

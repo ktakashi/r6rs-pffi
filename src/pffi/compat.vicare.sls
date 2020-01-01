@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
 ;;; src/pffi/compat.vicare.sls - Compatible layer for Vicare
-;;;  
+;;;
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; this file provides compatible layer for (pffi procedure)
 ;; if implementations can't make this layer, then make
@@ -35,127 +35,127 @@
 
 #!r6rs
 (library (pffi compat)
-    (export open-shared-object	 ;; form (vicare ffi)
-	    (rename (%lookup-shared-object lookup-shared-object))
-	    make-c-function
-	    make-c-callback
-	    free-c-callback
+    (export open-shared-object   ;; form (vicare ffi)
+            (rename (%lookup-shared-object lookup-shared-object))
+            make-c-function
+            make-c-callback
+            free-c-callback
 
-	    ;; primitive types
-	    char  unsigned-char
-	    short unsigned-short
-	    int   unsigned-int
-	    long  unsigned-long
-	    float double
-	    int8_t  uint8_t
-	    int16_t uint16_t
-	    int32_t uint32_t
-	    int64_t uint64_t
-	    pointer callback
-	    void
+            ;; primitive types
+            char  unsigned-char
+            short unsigned-short
+            int   unsigned-int
+            long  unsigned-long
+            float double
+            int8_t  uint8_t
+            int16_t uint16_t
+            int32_t uint32_t
+            int64_t uint64_t
+            pointer callback
+            void
 
-	    pointer-ref-c-uint8
-	    pointer-ref-c-int8
-	    pointer-ref-c-uint16
-	    pointer-ref-c-int16
-	    pointer-ref-c-uint32
-	    pointer-ref-c-int32
-	    pointer-ref-c-uint64
-	    pointer-ref-c-int64
-	    pointer-ref-c-unsigned-char
-	    pointer-ref-c-char
-	    pointer-ref-c-unsigned-short
-	    pointer-ref-c-short
-	    pointer-ref-c-unsigned-int
-	    pointer-ref-c-int
-	    pointer-ref-c-unsigned-long
-	    pointer-ref-c-long
-	    pointer-ref-c-float
-	    pointer-ref-c-double
-	    pointer-ref-c-pointer
+            pointer-ref-c-uint8
+            pointer-ref-c-int8
+            pointer-ref-c-uint16
+            pointer-ref-c-int16
+            pointer-ref-c-uint32
+            pointer-ref-c-int32
+            pointer-ref-c-uint64
+            pointer-ref-c-int64
+            pointer-ref-c-unsigned-char
+            pointer-ref-c-char
+            pointer-ref-c-unsigned-short
+            pointer-ref-c-short
+            pointer-ref-c-unsigned-int
+            pointer-ref-c-int
+            pointer-ref-c-unsigned-long
+            pointer-ref-c-long
+            pointer-ref-c-float
+            pointer-ref-c-double
+            pointer-ref-c-pointer
 
-	    ;; pointer set
-	    pointer-set-c-uint8!
-	    pointer-set-c-int8!
-	    pointer-set-c-uint16!
-	    pointer-set-c-int16!
-	    pointer-set-c-uint32!
-	    pointer-set-c-int32!
-	    pointer-set-c-uint64!
-	    pointer-set-c-int64!
-	    pointer-set-c-unsigned-char!
-	    pointer-set-c-char!
-	    pointer-set-c-unsigned-short!
-	    pointer-set-c-short!
-	    pointer-set-c-unsigned-int!
-	    pointer-set-c-int!
-	    pointer-set-c-unsigned-long!
-	    pointer-set-c-long!
-	    pointer-set-c-float!
-	    pointer-set-c-double!
-	    pointer-set-c-pointer!
-	    
-	    ;; sizeof
-	    size-of-char
-	    size-of-short
-	    size-of-int
-	    size-of-long
-	    size-of-float
-	    size-of-double
-	    size-of-pointer
-	    size-of-int8_t
-	    size-of-int16_t
-	    size-of-int32_t
-	    size-of-int64_t
+            ;; pointer set
+            pointer-set-c-uint8!
+            pointer-set-c-int8!
+            pointer-set-c-uint16!
+            pointer-set-c-int16!
+            pointer-set-c-uint32!
+            pointer-set-c-int32!
+            pointer-set-c-uint64!
+            pointer-set-c-int64!
+            pointer-set-c-unsigned-char!
+            pointer-set-c-char!
+            pointer-set-c-unsigned-short!
+            pointer-set-c-short!
+            pointer-set-c-unsigned-int!
+            pointer-set-c-int!
+            pointer-set-c-unsigned-long!
+            pointer-set-c-long!
+            pointer-set-c-float!
+            pointer-set-c-double!
+            pointer-set-c-pointer!
 
-	    (rename (pointer-wrapper? pointer?))
-	    bytevector->pointer
-	    pointer->bytevector
-	    (rename (%pointer->integer pointer->integer)
-		    (%integer->pointer integer->pointer))
-	    )
+            ;; sizeof
+            size-of-char
+            size-of-short
+            size-of-int
+            size-of-long
+            size-of-float
+            size-of-double
+            size-of-pointer
+            size-of-int8_t
+            size-of-int16_t
+            size-of-int32_t
+            size-of-int64_t
+
+            (rename (pointer-wrapper? pointer?))
+            bytevector->pointer
+            pointer->bytevector
+            (rename (%pointer->integer pointer->integer)
+                    (%integer->pointer integer->pointer))
+            )
     (import (rnrs)
-	    (rename (except (vicare ffi)
-			    pointer-ref-c-sint8
-			    pointer-ref-c-uint16
-			    pointer-ref-c-sint16
-			    pointer-ref-c-uint32
-			    pointer-ref-c-sint32
-			    pointer-ref-c-uint64
-			    pointer-ref-c-sint64
-			    pointer-ref-c-unsigned-char
-			    pointer-ref-c-unsigned-short
-			    pointer-ref-c-unsigned-int
-			    pointer-ref-c-unsigned-long
-			    pointer-ref-c-float
-			    pointer-ref-c-double
-			    pointer-ref-c-pointer
-			    pointer-set-c-sint8!
-			    pointer-set-c-uint16!
-			    pointer-set-c-sint16!
-			    pointer-set-c-uint32!
-			    pointer-set-c-sint32!
-			    pointer-set-c-uint64!
-			    pointer-set-c-sint64!
-			    pointer-set-c-short!
-			    pointer-set-c-sint!
-			    pointer-set-c-unsigned-char!
-			    pointer-set-c-unsigned-short!
-			    pointer-set-c-unsigned-int!
-			    pointer-set-c-unsigned-long!
-			    pointer-set-c-float!
-			    pointer-set-c-double!
-			    pointer-set-c-pointer!)
-		    (pointer-ref-c-uint8 %pointer-ref-c-uint8)
-		    (pointer-set-c-uint8! %pointer-set-c-uint8!))
-	    (rename (vicare platform words)
-		    (SIZEOF_CHAR    size-of-char)
-		    (SIZEOF_SHORT   size-of-short)
-		    (SIZEOF_INT     size-of-int)	     
-		    (SIZEOF_LONG    size-of-long)
-		    (SIZEOF_FLOAT   size-of-float)
-		    (SIZEOF_DOUBLE  size-of-double)
-		    (SIZEOF_POINTER size-of-pointer)))
+            (rename (except (vicare ffi)
+                            pointer-ref-c-sint8
+                            pointer-ref-c-uint16
+                            pointer-ref-c-sint16
+                            pointer-ref-c-uint32
+                            pointer-ref-c-sint32
+                            pointer-ref-c-uint64
+                            pointer-ref-c-sint64
+                            pointer-ref-c-unsigned-char
+                            pointer-ref-c-unsigned-short
+                            pointer-ref-c-unsigned-int
+                            pointer-ref-c-unsigned-long
+                            pointer-ref-c-float
+                            pointer-ref-c-double
+                            pointer-ref-c-pointer
+                            pointer-set-c-sint8!
+                            pointer-set-c-uint16!
+                            pointer-set-c-sint16!
+                            pointer-set-c-uint32!
+                            pointer-set-c-sint32!
+                            pointer-set-c-uint64!
+                            pointer-set-c-sint64!
+                            pointer-set-c-short!
+                            pointer-set-c-sint!
+                            pointer-set-c-unsigned-char!
+                            pointer-set-c-unsigned-short!
+                            pointer-set-c-unsigned-int!
+                            pointer-set-c-unsigned-long!
+                            pointer-set-c-float!
+                            pointer-set-c-double!
+                            pointer-set-c-pointer!)
+                    (pointer-ref-c-uint8 %pointer-ref-c-uint8)
+                    (pointer-set-c-uint8! %pointer-set-c-uint8!))
+            (rename (vicare platform words)
+                    (SIZEOF_CHAR    size-of-char)
+                    (SIZEOF_SHORT   size-of-short)
+                    (SIZEOF_INT     size-of-int)
+                    (SIZEOF_LONG    size-of-long)
+                    (SIZEOF_FLOAT   size-of-float)
+                    (SIZEOF_DOUBLE  size-of-double)
+                    (SIZEOF_POINTER size-of-pointer)))
 
 
 (define char           'signed-char)
@@ -187,47 +187,47 @@
 (define (sync-pointer arg)
   (when (pointer-wrapper? arg)
     (let* ((dst (pointer-bytevector arg))
-	   (len (bytevector-length dst))
-	   (src (memory->bytevector (pointer-memory arg) len)))
+           (len (bytevector-length dst))
+           (src (memory->bytevector (pointer-memory arg) len)))
       (bytevector-copy! src 0 dst 0 len))))
 
 (define (make-c-function lib ret name arg-type)
   (define (pointer-handler f)
     (define (pointer/value arg)
       (if (pointer-wrapper? arg)
-	  (pointer-memory arg)
-	  arg))
+          (pointer-memory arg)
+          arg))
     (define (->pointer arg)
       (if (pointer? arg)
-	  (make-pointer-wrapper (memory->bytevector arg size-of-pointer) arg)
-	  arg))
+          (make-pointer-wrapper (memory->bytevector arg size-of-pointer) arg)
+          arg))
     (lambda args
       (let-values ((results (apply f (map pointer/value args))))
-	(for-each sync-pointer args)
-	;; do foreign-procedures return multiple values?
-	(apply values (map ->pointer results)))))
+        (for-each sync-pointer args)
+        ;; do foreign-procedures return multiple values?
+        (apply values (map ->pointer results)))))
   (let ((func (lookup-shared-object lib (symbol->string name)))
-	(m (make-c-callout-maker ret arg-type)))
+        (m (make-c-callout-maker ret arg-type)))
     (pointer-handler (m func))))
 
 (define (%lookup-shared-object lib name)
   (let ((raw-ptr (lookup-shared-object lib name)))
     (make-pointer-wrapper (memory->bytevector raw-ptr size-of-pointer)
-			  raw-ptr)))
+                          raw-ptr)))
 
 ;; FIXME, this probably doesn't work
 (define (make-c-callback ret args proc)
   (define (pointer-handler f)
     (define (pointer/value arg)
       (if (pointer? arg)
-	  ;; TODO is this true?
-	  (make-pointer-wrapper (memory->bytevector arg size-of-pointer) arg)
-	  arg))
+          ;; TODO is this true?
+          (make-pointer-wrapper (memory->bytevector arg size-of-pointer) arg)
+          arg))
     (lambda args
       (let-values ((results (apply f (map pointer/value args))))
-	;; (for-each sync-pointer results)
-	;; argument is passed from foreign world
-	(apply values results))))
+        ;; (for-each sync-pointer results)
+        ;; argument is passed from foreign world
+        (apply values results))))
   (let ((m (make-c-callback-maker ret args)))
     (m (pointer-handler proc))))
 
@@ -259,7 +259,7 @@
 
 (define-record-type pointer-wrapper
   (fields (immutable bytevector pointer-bytevector)
-	  (immutable memory pointer-memory)))
+          (immutable memory pointer-memory)))
 
 (define (bytevector->pointer bv . maybe-offset)
   ;; unfortunately, there is no procedure which can make a pointer
@@ -279,28 +279,28 @@
   (lambda (x)
     (define (gen-name t)
       (let ((s (symbol->string (syntax->datum t))))
-	(list (string->symbol (string-append "size-of-" s))
-	      (string->symbol (string-append "pointer-ref-c-" s))
-	      (string->symbol (string-append "pointer-set-c-" s "!")))))
+        (list (string->symbol (string-append "size-of-" s))
+              (string->symbol (string-append "pointer-ref-c-" s))
+              (string->symbol (string-append "pointer-set-c-" s "!")))))
     (syntax-case x ()
       ((k type bv-ref ->bv)
        (with-syntax (((size ref set!) (datum->syntax #'k (gen-name #'type))))
-	 #'(begin
-	     (define (ref ptr offset)
-	       (let ((bv (make-bytevector size))
-		     (p (pointer-memory ptr)))
-		 (do ((i 0 (+ i 1))) 
-		     ((= i size) (bv-ref bv 0 (native-endianness)))
-		   (bytevector-u8-set! bv i 
-		       (%pointer-ref-c-uint8 p (+ i offset))))))
-	     (define (set! ptr offset value)
-	       (let ((bv (->bv value))
-		     (p (pointer-memory ptr)))
-		 (do ((len (bytevector-length bv))
-		      (i 0 (+ i 1)))
-		     ((= i len) (sync-pointer ptr))
-		   (%pointer-set-c-uint8! p (+ i offset)
-					 (bytevector-u8-ref bv i)))))))))))
+         #'(begin
+             (define (ref ptr offset)
+               (let ((bv (make-bytevector size))
+                     (p (pointer-memory ptr)))
+                 (do ((i 0 (+ i 1)))
+                     ((= i size) (bv-ref bv 0 (native-endianness)))
+                   (bytevector-u8-set! bv i
+                       (%pointer-ref-c-uint8 p (+ i offset))))))
+             (define (set! ptr offset value)
+               (let ((bv (->bv value))
+                     (p (pointer-memory ptr)))
+                 (do ((len (bytevector-length bv))
+                      (i 0 (+ i 1)))
+                     ((= i len) (sync-pointer ptr))
+                   (%pointer-set-c-uint8! p (+ i offset)
+                                         (bytevector-u8-ref bv i)))))))))))
 
 ;; kinda tricky
 (define (bytevector-long-ref bv index endian)
@@ -367,23 +367,23 @@
 
 (define (bytevector-pointer-ref bv index endian)
   (let ((i (if (= size-of-pointer 4)
-	       (bytevector-u32-ref bv index endian)
-	       (bytevector-u64-ref bv index endian))))
+               (bytevector-u32-ref bv index endian)
+               (bytevector-u64-ref bv index endian))))
     (%integer->pointer i)))
 (define (pointer-ref-c-pointer p offset)
   (bytevector-pointer-ref (pointer-bytevector p) offset (native-endianness)))
 (define (pointer-set-c-pointer! p offset ptr)
   (let ((src-p (pointer-memory ptr)))
     (if (= size-of-pointer 8)
-	(pointer-set-c-uint64! p offset (pointer->integer src-p))
-	(pointer-set-c-uint32! p offset (pointer->integer src-p)))))
+        (pointer-set-c-uint64! p offset (pointer->integer src-p))
+        (pointer-set-c-uint32! p offset (pointer->integer src-p)))))
 
 (define (%pointer->integer ptr)
   (pointer->integer (pointer-memory ptr)))
 (define (%integer->pointer i)
-  (define (integer->pointer-bv p) 
+  (define (integer->pointer-bv p)
     (uint-list->bytevector (list p)
-			   (native-endianness) size-of-pointer))
+                           (native-endianness) size-of-pointer))
   (let ((p (integer->pointer i)))
     (make-pointer-wrapper (integer->pointer-bv i) p)))
 
