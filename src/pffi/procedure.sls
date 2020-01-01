@@ -33,7 +33,8 @@
     (export foreign-procedure
             c-callback
             free-c-callback
-            open-shared-object
+            open-shared-object/filename
+            shared-object-extension
             lookup-shared-object
 
             ;; primitive types

@@ -34,6 +34,7 @@
             c-callback
             free-c-callback
             open-shared-object
+            shared-object-extension
             ;; TODO should we export these primitives?
             ;; lookup-shared-object
             ;; make-c-function
@@ -127,11 +128,18 @@
             (pffi variable)
             (pffi pointers)
             (pffi struct)
-            (only (rnrs) define))
+            (rnrs))
 
 (define size-of-uint8_t  size-of-int8_t)
 (define size-of-uint16_t size-of-int16_t)
 (define size-of-uint32_t size-of-int32_t)
 (define size-of-uint64_t size-of-int64_t)
 
-)
+(define (has-dot? s)
+  (let check ((n (string-length s)) (i 0))
+    (and (< i n) (or (char=? #\. (string-ref s i)) (check n (+ i 1))))))
+
+(define (open-shared-object filename)
+  (open-shared-object/filename
+   (if (has-dot? filename) filename
+       (string-append filename shared-object-extension)))))
