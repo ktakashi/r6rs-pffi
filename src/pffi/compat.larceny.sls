@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
 ;;; src/pffi/compat.larceny.sls - Compatible layer for Larceny
-;;;  
+;;;
 ;;;   Copyright (c) 2015-2018 Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; this file provides compatible layer for (pffi procedure)
 ;; if implementations can't make this layer, then make
@@ -36,142 +36,142 @@
 #!r6rs
 (library (pffi compat)
     (export open-shared-object
-	    lookup-shared-object
+            lookup-shared-object
 
-	    make-c-function
-	    make-c-callback
-	    free-c-callback
+            make-c-function
+            make-c-callback
+            free-c-callback
 
 
-	    ;; primitive types
-	    char  unsigned-char
-	    short unsigned-short
-	    int   unsigned-int
-	    long  unsigned-long
-	    float double
-	    int8_t  uint8_t
-	    int16_t uint16_t
-	    int32_t uint32_t
-	    int64_t uint64_t
-	    pointer callback
-	    void
-	    ;; pointer ref
-	    pointer-ref-c-uint8
-	    pointer-ref-c-int8
-	    pointer-ref-c-uint16
-	    pointer-ref-c-int16
-	    pointer-ref-c-uint32
-	    pointer-ref-c-int32
-	    pointer-ref-c-uint64
-	    pointer-ref-c-int64
-	    pointer-ref-c-unsigned-char
-	    pointer-ref-c-char
-	    pointer-ref-c-unsigned-short
-	    pointer-ref-c-short
-	    pointer-ref-c-unsigned-int
-	    pointer-ref-c-int
-	    pointer-ref-c-unsigned-long
-	    pointer-ref-c-long
-	    pointer-ref-c-float
-	    pointer-ref-c-double
-	    pointer-ref-c-pointer
+            ;; primitive types
+            char  unsigned-char
+            short unsigned-short
+            int   unsigned-int
+            long  unsigned-long
+            float double
+            int8_t  uint8_t
+            int16_t uint16_t
+            int32_t uint32_t
+            int64_t uint64_t
+            pointer callback
+            void
+            ;; pointer ref
+            pointer-ref-c-uint8
+            pointer-ref-c-int8
+            pointer-ref-c-uint16
+            pointer-ref-c-int16
+            pointer-ref-c-uint32
+            pointer-ref-c-int32
+            pointer-ref-c-uint64
+            pointer-ref-c-int64
+            pointer-ref-c-unsigned-char
+            pointer-ref-c-char
+            pointer-ref-c-unsigned-short
+            pointer-ref-c-short
+            pointer-ref-c-unsigned-int
+            pointer-ref-c-int
+            pointer-ref-c-unsigned-long
+            pointer-ref-c-long
+            pointer-ref-c-float
+            pointer-ref-c-double
+            pointer-ref-c-pointer
 
-	    ;; pointer set
-	    pointer-set-c-uint8!
-	    pointer-set-c-int8!
-	    pointer-set-c-uint16!
-	    pointer-set-c-int16!
-	    pointer-set-c-uint32!
-	    pointer-set-c-int32!
-	    pointer-set-c-uint64!
-	    pointer-set-c-int64!
-	    pointer-set-c-unsigned-char!
-	    pointer-set-c-char!
-	    pointer-set-c-unsigned-short!
-	    pointer-set-c-short!
-	    pointer-set-c-unsigned-int!
-	    pointer-set-c-int!
-	    pointer-set-c-unsigned-long!
-	    pointer-set-c-long!
-	    pointer-set-c-float!
-	    pointer-set-c-double!
-	    pointer-set-c-pointer!
+            ;; pointer set
+            pointer-set-c-uint8!
+            pointer-set-c-int8!
+            pointer-set-c-uint16!
+            pointer-set-c-int16!
+            pointer-set-c-uint32!
+            pointer-set-c-int32!
+            pointer-set-c-uint64!
+            pointer-set-c-int64!
+            pointer-set-c-unsigned-char!
+            pointer-set-c-char!
+            pointer-set-c-unsigned-short!
+            pointer-set-c-short!
+            pointer-set-c-unsigned-int!
+            pointer-set-c-int!
+            pointer-set-c-unsigned-long!
+            pointer-set-c-long!
+            pointer-set-c-float!
+            pointer-set-c-double!
+            pointer-set-c-pointer!
 
-	    ;; sizeof
-	    size-of-char
-	    size-of-short
-	    size-of-int
-	    size-of-long
-	    size-of-float
-	    size-of-double
-	    size-of-pointer
-	    size-of-int8_t
-	    size-of-int16_t
-	    size-of-int32_t
-	    size-of-int64_t
+            ;; sizeof
+            size-of-char
+            size-of-short
+            size-of-int
+            size-of-long
+            size-of-float
+            size-of-double
+            size-of-pointer
+            size-of-int8_t
+            size-of-int16_t
+            size-of-int32_t
+            size-of-int64_t
 
-	    pointer?
-	    bytevector->pointer
-	    pointer->bytevector
-	    pointer->integer
-	    integer->pointer
+            pointer?
+            bytevector->pointer
+            pointer->bytevector
+            pointer->integer
+            integer->pointer
 
-	    )
+            )
     (import (rnrs)
-	    (primitives ffi/dlopen ffi/dlsym
-			ffi-attribute-core-entry
-			ffi/ret-converter
-			ffi/arg-converter
-			ffi/convert-arg-descriptor
-			ffi/convert-ret-descriptor
-			ffi/make-callout
-			ffi/make-callback
-			ffi/apply
-			;; in lib/Base/std-ffi.sch
-			ffi-get-abi
-			ffi/rename-ret-type
-			ffi/rename-arg-type
-			void*-rt
-			void*?
-			void*->address
-			sizeof:long
-			sizeof:pointer
-			%peek8 %peek8u
-			%peek16 %peek16u
-			%peek32 %peek32u
-			%peek-long %peek-ulong
-			peek-bytes
-			poke-bytes
-			void*-float-ref
-			void*-double-ref
-			void*-void*-ref
-			void*-void*-set!
-			ffi/handle->address
-			make-nonrelocatable-bytevector
-			))
+            (primitives ffi/dlopen ffi/dlsym
+                        ffi-attribute-core-entry
+                        ffi/ret-converter
+                        ffi/arg-converter
+                        ffi/convert-arg-descriptor
+                        ffi/convert-ret-descriptor
+                        ffi/make-callout
+                        ffi/make-callback
+                        ffi/apply
+                        ;; in lib/Base/std-ffi.sch
+                        ffi-get-abi
+                        ffi/rename-ret-type
+                        ffi/rename-arg-type
+                        void*-rt
+                        void*?
+                        void*->address
+                        sizeof:long
+                        sizeof:pointer
+                        %peek8 %peek8u
+                        %peek16 %peek16u
+                        %peek32 %peek32u
+                        %peek-long %peek-ulong
+                        peek-bytes
+                        poke-bytes
+                        void*-float-ref
+                        void*-double-ref
+                        void*-void*-ref
+                        void*-void*-set!
+                        ffi/handle->address
+                        make-nonrelocatable-bytevector
+                        ))
 
 ;; it might be better not to show handle (integer) itself
 (define-record-type shared-object
   (fields handle))
 
-(define (open-shared-object path) 
+(define (open-shared-object path)
   (let ((handle (ffi/dlopen path)))
     (and handle
-	 (make-shared-object handle))))
+         (make-shared-object handle))))
 
 (define-record-type (<pointer> make-pointer pointer?)
   (fields (immutable src pointer-src)
-	  ;; nonrelocatable bytevector 
-	  dummy
-	  ;; element pointer of above
-	  (immutable ptr pointer-ptr)))
+          ;; nonrelocatable bytevector
+          dummy
+          ;; element pointer of above
+          (immutable ptr pointer-ptr)))
 (define (null-pointer? pointer) (zero? (pointer->integer pointer)))
 
 (define (void*->pointer v*)
   (let ((bv (make-bytevector size-of-pointer)))
     (if (= size-of-pointer 4)
-	(bytevector-u32-native-set! bv 0 (void*-ptr v*))
-	(bytevector-u64-native-set! bv 0 (void*-ptr v*)))
+        (bytevector-u32-native-set! bv 0 (void*-ptr v*))
+        (bytevector-u64-native-set! bv 0 (void*-ptr v*)))
     (make-pointer bv #f v*)))
 
 ;; we can't use unsigned->void*, this converts null pointer
@@ -182,7 +182,7 @@
     (void*->pointer (make-void* addr))))
 ;; ffi/dlsym returns integer (address) directly so
 ;; we need to get converter
-(define (lookup-shared-object lib name) 
+(define (lookup-shared-object lib name)
   (let ((address (ffi/dlsym (shared-object-handle lib) name)))
     (address->pointer address)))
 
@@ -191,9 +191,9 @@
 (define (pointer->void* t o)
   (define (convert o)
     (cond ((pointer? o) (pointer-ptr o))
-	  ((bytevector? o) (convert (bytevector->pointer o)))
-	  ((string? o) (convert (string->utf8 (string-append o "\x0;"))))
-	  (else o)))
+          ((bytevector? o) (convert (bytevector->pointer o)))
+          ((string? o) (convert (string->utf8 (string-append o "\x0;"))))
+          (else o)))
   (case t
     ((void*) (convert o))
     (else o)))
@@ -205,58 +205,58 @@
 (define (sync-pointer arg)
   (if (and (pointer? arg) (not (null-pointer? arg)))
       (let* ((dst (pointer-src arg))
-	     (len (bytevector-length dst)))
-	(do ((i 0 (+ i 1)))
-	    ((= i len) arg)
-	  (bytevector-u8-set! dst i (pointer-ref-c-uint8 arg i))))
+             (len (bytevector-length dst)))
+        (do ((i 0 (+ i 1)))
+            ((= i len) arg)
+          (bytevector-u8-set! dst i (pointer-ref-c-uint8 arg i))))
       arg))
 
 (define (make-foreign-invoker tramp args ret ret-conv arg-conv name arg-types)
   (lambda actual
     ;; (display name) (newline) (display actual) (newline)
-    (let-values (((error? value) 
-		  (ffi/apply tramp args ret 
-			     (map (lambda (c v) (c v (symbol->string name)))
-				  arg-conv
-				  (map pointer->void* arg-types actual)))))
+    (let-values (((error? value)
+                  (ffi/apply tramp args ret
+                             (map (lambda (c v) (c v (symbol->string name)))
+                                  arg-conv
+                                  (map pointer->void* arg-types actual)))))
       (for-each sync-pointer actual)
       (if error?
-	  (error name "Failed to call foreign procedure" name actual)
-	  (sync-pointer (%void*->pointer (ret-conv value (symbol->string name))))))))
+          (error name "Failed to call foreign procedure" name actual)
+          (sync-pointer (%void*->pointer (ret-conv value (symbol->string name))))))))
 
-(define make-c-function 
+(define make-c-function
   ;; for some reason ffi-get-abi requires something for type
   ;; and if we pass null, we can get cdecl
   (let ((abi (ffi-get-abi 'callout '())))
     (lambda (lib ret name arg-type)
       (let* ((rconv (ffi/ret-converter ret))
-	     (argconv (map ffi/arg-converter arg-type))
-	     (addr (ffi/dlsym (shared-object-handle lib) (symbol->string name)))
-	     (renamed-args (map ffi/rename-arg-type arg-type))
-	     (renamed-ret (ffi/rename-ret-type ret))
-	     (tramp (ffi/make-callout abi addr renamed-args renamed-ret))
-	     (args (ffi/convert-arg-descriptor abi renamed-args))
-	     (ret (ffi/convert-ret-descriptor abi renamed-ret)))
-	(make-foreign-invoker tramp args ret rconv argconv name arg-type)))))
+             (argconv (map ffi/arg-converter arg-type))
+             (addr (ffi/dlsym (shared-object-handle lib) (symbol->string name)))
+             (renamed-args (map ffi/rename-arg-type arg-type))
+             (renamed-ret (ffi/rename-ret-type ret))
+             (tramp (ffi/make-callout abi addr renamed-args renamed-ret))
+             (args (ffi/convert-arg-descriptor abi renamed-args))
+             (ret (ffi/convert-ret-descriptor abi renamed-ret)))
+        (make-foreign-invoker tramp args ret rconv argconv name arg-type)))))
 
 ;; maybe we should make this GC protected
 (define make-c-callback
   (let ((abi (ffi-get-abi 'callback '())))
     (lambda (ret types proc)
-      (ffi/make-callback 
+      (ffi/make-callback
        abi
        (lambda args
-	 (let ((v (apply proc (map (lambda (t v)
-				     (sync-pointer
-				      (%void*->pointer ((ffi/ret-converter t) v t))))
-				   types args)))
-	       (r-conv (ffi/arg-converter ret)))
-	   ;; sync returning value 
-	   (pointer->void*
-	    (sync-pointer
-	     (if r-conv
-		 (r-conv v ret)
-		 v)))))
+         (let ((v (apply proc (map (lambda (t v)
+                                     (sync-pointer
+                                      (%void*->pointer ((ffi/ret-converter t) v t))))
+                                   types args)))
+               (r-conv (ffi/arg-converter ret)))
+           ;; sync returning value
+           (pointer->void*
+            (sync-pointer
+             (if r-conv
+                 (r-conv v ret)
+                 v)))))
        (map ffi/rename-arg-type types)
        (ffi/rename-ret-type ret)))))
 ;; dummy
@@ -280,12 +280,12 @@
 (define-pointer-ref pointer-ref-c-int32 %peek32)
 (define (pointer-ref-c-uint64 p offset)
   (let* ((addr (pointer-pointer p))
-	 (bv (make-bytevector 8)))
+         (bv (make-bytevector 8)))
     (peek-bytes (+ addr offset) bv 8)
     (bytevector-u64-native-ref bv 0)))
 (define (pointer-ref-c-int64 p offset)
   (let* ((addr (pointer-pointer p))
-	 (bv (make-bytevector 8)))
+         (bv (make-bytevector 8)))
     (peek-bytes (+ addr offset) bv 8)
     (bytevector-s64-native-ref bv 0)))
 
@@ -314,8 +314,8 @@
     ((_ name size bv-set)
      (define (name p offset val)
        (let ((bv (make-bytevector size)))
-	 (bv-set bv 0 val)
-	 (poke-bytes (+ (pointer-pointer p) offset) bv size))))))
+         (bv-set bv 0 val)
+         (poke-bytes (+ (pointer-pointer p) offset) bv size))))))
 
 (define (bytevector-long-native-set! bv index val)
   (if (= size-of-long 4)
@@ -340,15 +340,15 @@
 (define pointer-set-c-short! pointer-set-c-int16!)
 (define pointer-set-c-unsigned-int! pointer-set-c-uint32!)
 (define pointer-set-c-int! pointer-set-c-int32!)
-(define-pointer-set pointer-set-c-unsigned-long! 
+(define-pointer-set pointer-set-c-unsigned-long!
   size-of-long bytevector-ulong-native-set!)
-(define-pointer-set pointer-set-c-long! 
+(define-pointer-set pointer-set-c-long!
   size-of-long bytevector-long-native-set!)
 (define-pointer-set pointer-set-c-float! 4 bytevector-ieee-single-native-set!)
 (define-pointer-set pointer-set-c-double! 8 bytevector-ieee-double-native-set!)
 (define (pointer-set-c-pointer! p offset v)
   (let ((p (pointer-ptr p))
-	(v (pointer-ptr v)))
+        (v (pointer-ptr v)))
     (void*-void*-set! p offset v)))
 
 
@@ -403,11 +403,11 @@
   ;; Unfortunately, we only have one way, copy
   (let ((bv (make-bytevector len)))
     (do ((i 0 (+ i 1)))
-	((= i len) bv)
+        ((= i len) bv)
       (bytevector-u8-set! bv i (pointer-ref-c-uint8 p i)))))
 
 (define integer->pointer address->pointer)
 (define (pointer->integer p)
   (void*->address (pointer-ptr p)))
-  
+
 )
