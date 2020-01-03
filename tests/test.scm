@@ -23,6 +23,9 @@
 (test-equal "plus" 2
 	    ((foreign-procedure test-lib int plus (int int)) 1 1))
 
+(test-assert "null-pointer? (1)" (null-pointer? (integer->pointer 0)))
+(test-assert "null-pointer? (2)" (not (null-pointer? (integer->pointer 1))))
+
 (let ((proc (c-callback int ((int i)) (lambda (i) (* i i)))))
   (define callback-proc
     (foreign-procedure test-lib int callback_proc ((callback int (int)) int)))

@@ -32,6 +32,7 @@
 
 (library (pffi pointers)
     (export pointer?
+	    null-pointer?
             bytevector->pointer
             pointer->bytevector
             pointer->integer
@@ -77,4 +78,8 @@
             pointer-set-c-float!
             pointer-set-c-double!
             pointer-set-c-pointer!)
-    (import (pffi compat)))
+    (import (rnrs)
+	    (pffi compat))
+
+(define (null-pointer? pointer) (zero? (pointer->integer pointer)))
+)

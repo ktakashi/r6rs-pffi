@@ -114,6 +114,7 @@
             define-foreign-variable
 
             pointer?
+	    null-pointer?
             bytevector->pointer
             pointer->bytevector
             pointer->integer
