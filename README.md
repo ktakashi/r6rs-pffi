@@ -113,6 +113,10 @@ have foreign types.
 
 Returns #t if given _o_ is a pointer object.
 
+#### [Procedure] `null-pointer?` _pointer_
+
+Returns #t if given _pointer_ value is 0.
+
 #### [Procedure] `bytevector->pointer` _bv_
 
 Converts given bytevector _bv_ to implementation dependent pointer object.

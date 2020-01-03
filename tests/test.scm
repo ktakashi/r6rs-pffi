@@ -25,6 +25,7 @@
 
 (test-assert "null-pointer? (1)" (null-pointer? (integer->pointer 0)))
 (test-assert "null-pointer? (2)" (not (null-pointer? (integer->pointer 1))))
+(test-error (null-pointer? 'not-a-pointer))
 
 (let ((proc (c-callback int ((int i)) (lambda (i) (* i i)))))
   (define callback-proc
