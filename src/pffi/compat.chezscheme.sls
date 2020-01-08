@@ -35,7 +35,8 @@
 
 #!r6rs
 (library (pffi compat)
-    (export open-shared-object
+    (export open-shared-object/filename
+            shared-object-extension
             lookup-shared-object
             make-c-function
             make-c-callback
@@ -119,6 +120,7 @@
             (rename (pffi bv-pointer)
                     (bytevector->pointer bytevector->address))
             (only (chezscheme)
+                  machine-type
                   load-shared-object
                   lock-object foreign-callable-entry-point
                   foreign-callable unlock-object
@@ -165,9 +167,25 @@
 (define float          'float)
 (define pointer        'void*)
 
-(define (open-shared-object path)
+(define (open-shared-object/filename path)
   (load-shared-object path)
   (make-shared-object))
+
+(define (chez-os)
+  (let* ((mt (symbol->string (machine-type)))
+         (n (string-length mt))
+         (last2 (substring mt (- n 2) n))
+         (last3 (substring mt (- n 3) n)))
+    (string->symbol
+     (if (or (string=? last3 "osx") (string=? last3 "qnx")) last3 last2))))
+
+(define shared-object-extension
+  (case (chez-os)
+    ((fb le nb ob) ".so")
+    ((osx) ".dylib")
+    ((nt) ".dll")
+    (else "")))
+
 (define (lookup-shared-object lib name) (make-pointer (foreign-entry name)))
 
 (define (free-c-callback proc) (unlock-object proc))
