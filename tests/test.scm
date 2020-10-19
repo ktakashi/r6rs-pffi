@@ -1,5 +1,6 @@
 #!r6rs
 (import (rnrs)
+	(rnrs eval)
 	(pffi)
 	(srfi :64))
 
@@ -315,5 +316,18 @@
 
     (test-equal "a-st-s1 (2)" 2 (a-st-s1 (a-union-st bv)))
     (test-equal "a-st-s2 (2)" 0 (a-st-s2 (a-union-st bv)))))
-  
+
+(let ()
+  (test-error "field is not a symbol"
+	      syntax-violation?
+	      (eval '(define-foreign-struct a
+		       (fields ((callback double (double pointer))  function)))
+		    (environment '(pffi))))
+  (test-error "field is not a symbol (union)"
+	      syntax-violation?
+	      (eval '(define-foreign-union b
+		       (fields ((callback double (double pointer))  function)))
+		    (environment '(pffi)))))
+
+
 (test-end)
