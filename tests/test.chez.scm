@@ -18,11 +18,12 @@
     (bytevector-u8-set! bv (mod i n) (mod i 255))))
 
 (let* ((bv (make-bytevector (* 4 5) 0))
+       (ptr (bytevector->pointer bv))
        (orig-address (bytevector->address bv)))
-  (fill-one (bytevector->pointer bv) 1)
+  (fill-one ptr 1)
   (test-equal '(1 0 0 0 0) (bytevector->uint-list bv (native-endianness) 4))
   (collect)
-  (fill-one (bytevector->pointer bv) 2)
+  (fill-one ptr 2)
   (test-equal '(1 1 0 0 0) (bytevector->uint-list bv (native-endianness) 4))
   (test-assert (not (= orig-address (bytevector->address bv)))))
   
