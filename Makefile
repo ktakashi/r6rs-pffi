@@ -56,3 +56,4 @@ prepare-chez: prepare
 
 chez: prepare-chez
 	cd tests; scheme --libdirs ../src:lib --program test.scm
+	cd tests; scheme --libdirs ../src:lib --program test.chez.scm
