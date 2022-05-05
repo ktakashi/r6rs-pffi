@@ -114,6 +114,9 @@
             pointer->bytevector
             pointer->integer
             integer->pointer
+
+	    ;; for testing
+	    pointer-statistic
             )
     (import (rnrs)
             (rename (pffi bv-pointer)
@@ -124,7 +127,10 @@
                   foreign-callable unlock-object
                   foreign-procedure
                   ftype-pointer-address
-                  foreign-entry foreign-sizeof foreign-ref foreign-set!))
+                  foreign-entry foreign-sizeof foreign-ref foreign-set!
+		  make-weak-eq-hashtable
+		  collect
+		  make-guardian collect-request-handler))
 
 ;; dummy value
 (define-record-type shared-object)
@@ -163,7 +169,26 @@
 	(else (assertion-violation 'pointer->bytevector "pointer required"
 				   pointer))))
 
-(define (bytevector->pointer bv) (make-bytevector-pointer bv))
+;; finalizer emulator
+(define *pointer-table* (make-weak-eq-hashtable))
+(define *refcount-table* (make-weak-eq-hashtable))
+(define garbage-pool (make-guardian))
+
+(define (bytevector->pointer bv)
+  (define (finalize! p bv)
+    (garbage-pool p)
+    (hashtable-set! *pointer-table* p bv)
+    (hashtable-update! *refcount-table* bv (lambda (v) (+ v 1)) 0)
+    (lock-object bv)
+    p)
+  (finalize! (make-bytevector-pointer bv) bv))
+
+(define (pointer-statistic)
+  (list (hashtable-size *pointer-table*)
+	(hashtable-keys *pointer-table*)
+	(let-values (((keys values) (hashtable-entries *refcount-table*)))
+	  (vector-map cons keys values))))
+	
 
 (define-syntax callback
   (syntax-rules ()
@@ -372,4 +397,17 @@
 (define-deref int64)
 (define-deref uint64)
 (define-deref pointer make-integer-pointer pointer->integer)
+
+;; This has to be the last
+(collect-request-handler
+ (lambda ()
+   (collect)
+   (do ((x (garbage-pool) (garbage-pool)))
+       ((not x))
+     (cond ((hashtable-ref *pointer-table* x #f) =>
+	    (lambda (bv)
+	      (hashtable-update! *refcount-table* bv (lambda (v) (- v 1)) 0)
+	      (when (<= (hashtable-ref *refcount-table* bv 0) 0)
+		(unlock-object bv)
+		(hashtable-delete! *refcount-table* bv))))))))
 )

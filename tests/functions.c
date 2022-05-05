@@ -47,6 +47,15 @@ void fill_one(int *arr, int size)
   }  
 }
 
+void fill_n(int *arr, int size, int (*f)(int))
+{
+  int i;
+  for (i = 0; i < size; i++) {
+    arr[i] = f(i + 1);
+  }  
+}
+
+
 struct st1
 {
   int count;
