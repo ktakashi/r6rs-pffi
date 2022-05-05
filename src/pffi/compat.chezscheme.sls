@@ -128,17 +128,42 @@
 
 ;; dummy value
 (define-record-type shared-object)
-(define-record-type (<pointer> make-pointer pointer?)
-  (fields (immutable address pointer->integer)))
-(define integer->pointer make-pointer)
+(define-record-type (<pointer> dummy pointer?))
+;; general pointer.
+(define-record-type integer-pointer
+  (parent <pointer>)
+  (fields address))
+;; bytevector pointer, we need this as Chez's GC is generational GC,
+;; means it moves its objects.
+;; NOTE: this doesn't prevent GC during the FFI call, so a bit of
+;;       half baked solution, though better than nothing
+;; FIXME: if I have better idea
+(define-record-type bytevector-pointer
+  (parent <pointer>)
+  (fields value))
+(define integer->pointer make-integer-pointer)
+(define (pointer->integer p)
+  (cond ((integer-pointer? p) (integer-pointer-address p))
+	((bytevector-pointer? p)
+	 (bytevector->address (bytevector-pointer-value p)))
+	(else (assertion-violation 'pointer->integer "pointer required" p))))
 
 (define (pointer->bytevector pointer len . maybe-offset)
-  ;; FIXME one way copy
-  (let ((bv (make-bytevector len)))
-    (do ((i 0 (+ i 1)))
-        ((= i len) bv)
-      (bytevector-u8-set! bv i (pointer-ref-c-uint8 pointer i)))))
-(define (bytevector->pointer bv) (make-pointer (bytevector->address bv)))
+  (cond ((integer-pointer? pointer)
+	 ;; FIXME one way copy
+	 (let ((bv (make-bytevector len)))
+	   (do ((i 0 (+ i 1)))
+	       ((= i len) bv)
+	     (bytevector-u8-set! bv i (pointer-ref-c-uint8 pointer i)))))
+	;; This pass should be very rare as callback or returning pointer of
+	;; FFI call is constructed from integer. But for the sake of
+	;; completeness
+	;; TODO Should we check length?
+	((bytevector-pointer? pointer) (bytevector-pointer-value pointer))
+	(else (assertion-violation 'pointer->bytevector "pointer required"
+				   pointer))))
+
+(define (bytevector->pointer bv) (make-bytevector-pointer bv))
 
 (define-syntax callback
   (syntax-rules ()
@@ -168,7 +193,8 @@
 (define (open-shared-object path)
   (load-shared-object path)
   (make-shared-object))
-(define (lookup-shared-object lib name) (make-pointer (foreign-entry name)))
+(define (lookup-shared-object lib name) 
+(make-integer-pointer (foreign-entry name)))
 
 (define (free-c-callback proc) (unlock-object proc))
 
@@ -345,5 +371,5 @@
 (define-deref uint32)
 (define-deref int64)
 (define-deref uint64)
-(define-deref pointer make-pointer pointer->integer)
+(define-deref pointer make-integer-pointer pointer->integer)
 )
