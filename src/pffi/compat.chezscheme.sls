@@ -399,15 +399,16 @@
 (define-deref pointer make-integer-pointer pointer->integer)
 
 ;; This has to be the last
-(collect-request-handler
- (lambda ()
-   (collect)
-   (do ((x (garbage-pool) (garbage-pool)))
-       ((not x))
-     (cond ((hashtable-ref *pointer-table* x #f) =>
-	    (lambda (bv)
-	      (hashtable-update! *refcount-table* bv (lambda (v) (- v 1)) 0)
-	      (when (<= (hashtable-ref *refcount-table* bv 0) 0)
-		(unlock-object bv)
-		(hashtable-delete! *refcount-table* bv))))))))
+(let ((saved (collect-request-handler)))
+  (collect-request-handler
+   (lambda ()
+     (saved)
+     (do ((x (garbage-pool) (garbage-pool)))
+	 ((not x))
+       (cond ((hashtable-ref *pointer-table* x #f) =>
+	      (lambda (bv)
+		(hashtable-update! *refcount-table* bv (lambda (v) (- v 1)) 0)
+		(when (<= (hashtable-ref *refcount-table* bv 0) 0)
+		  (unlock-object bv)
+		  (hashtable-delete! *refcount-table* bv)))))))))
 )
