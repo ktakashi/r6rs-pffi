@@ -4,8 +4,22 @@
 	(srfi :64)
 	(rename (pffi bv-pointer)
 		(bytevector->pointer bytevector->address))
-	(only (pffi compat) pointer-statistic)
-	(only (chezscheme) collect locked-object?))
+        (only (pffi compat) pointer-tracker)
+        (only (chezscheme) collect locked-object?
+              make-weak-eq-hashtable))
+
+(define *pointer-table* (make-weak-eq-hashtable))
+(define *refcount-table* (make-weak-eq-hashtable))
+(define (pointer-statistic)
+  (list (hashtable-size *pointer-table*)
+	(hashtable-keys *pointer-table*)
+	(let-values (((keys values) (hashtable-entries *refcount-table*)))
+	  (vector-map cons keys values))))
+
+;; Set the tracker to count pointer allocations.
+(pointer-tracker (lambda (bv p)
+                   (hashtable-set! *pointer-table* p bv)
+                   (hashtable-update! *refcount-table* bv (lambda (v) (+ v 1)) 0)))
 
 (test-begin "PFFI Chez specific")
 
