@@ -1,0 +1,35 @@
+name: R6RS Portable FFI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  Ubuntu-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: target
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install libgc-dev zlib1g-dev libffi-dev curl
+      - name: Install scheme-env
+        run: |
+          curl https://raw.githubusercontent.com/ktakashi/scheme-env/master/bin/install.sh | bash
+          export PATH=$PATH:~/.scheme-env/bin
+      - name: Install Implementations
+        run: |
+          scheme-env install sagittarius
+          scheme-env install chez@9.5.6
+      - name: Run test
+        working-directory: target
+        run: ./ci-test.sh
+          
+        
