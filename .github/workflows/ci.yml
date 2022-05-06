@@ -23,7 +23,7 @@ jobs:
       - name: Install scheme-env
         run: |
           curl https://raw.githubusercontent.com/ktakashi/scheme-env/master/bin/install.sh | bash
-          export PATH=$PATH:~/.scheme-env/bin
+          echo "$HOME/.scheme-env/bin" >> $GITHUB_PATH
       - name: Install Implementations
         run: |
           scheme-env install sagittarius
