@@ -27,7 +27,7 @@ jobs:
       - name: Install Implementations
         run: |
           scheme-env install sagittarius
-          scheme-env install chez@9.5.6
+          scheme-env install chez
       - name: Run test
         working-directory: target
         run: ./ci-test.sh

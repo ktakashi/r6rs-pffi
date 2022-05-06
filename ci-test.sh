@@ -35,11 +35,25 @@ gcc -fPIC -shared -Wall -o tests/functions.so tests/functions.c
 cd tests
 for impl in ${implementations[@]}; do
     echo Testing with ${impl}
+    name=${impl%@*}
     for file in *.scm; do
-	scheme-env run ${impl} \
-		   --loadpath ../src \
-		   --loadpath lib \
-		   --standard r6rs --program ${file} | check_output
+	case $file in
+	    $name.test.scm)
+		scheme-env run ${impl} \
+			   --loadpath ../src \
+			   --loadpath lib \
+			   --standard r6rs --program ${file} | check_output
+		;;
+	    test.scm)
+		scheme-env run ${impl} \
+			   --loadpath ../src \
+			   --loadpath lib \
+			   --standard r6rs --program ${file} | check_output
+		;;
+	    *)
+		# Do nothing
+		;;
+	esac
 	case ${EXIT_STATUS} in
 	    0) EXIT_STATUS=$? ;;
 	esac
