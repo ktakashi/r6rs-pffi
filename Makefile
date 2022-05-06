@@ -34,13 +34,8 @@ mosh: prepare
 racket: prepare
 	cd tests; plt-r6rs ++path ../src test.scm
 
-# guile doesn't read .sls or .guile.sls by default...
-prepare-guile:
-	echo \(set! %load-extensions \'\(\".guile.sls\" \".sls\" \".scm\"\)\) > .guile.rc
-
-guile: prepare prepare-guile
-	cd tests; guile --no-auto-compile -l .guile.rc -L ../src test.scm
-	rm .guile.rc
+guile: prepare
+	cd tests; guile --no-auto-compile --r6rs -L ../src test.scm
 
 prepare-larceny:
 	cd tests; gcc -m32 -shared -Wall -o functions.so functions.c

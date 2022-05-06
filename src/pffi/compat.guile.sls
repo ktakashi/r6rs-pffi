@@ -149,8 +149,22 @@
 (define (free-c-callback proc) #t) ;; for now.
 
 (define (make-c-function lib ret name arg-types)
-  (pointer->procedure ret (lookup-shared-object lib (symbol->string name))
-                      arg-types))
+  (define (s->p s) (b->p (string->utf8 s)))
+  (define (b->p bv) (bytevector->pointer bv))
+  (let ((fp (pointer->procedure ret
+			       (lookup-shared-object lib (symbol->string name))
+			       arg-types)))
+    (lambda args*
+      (apply fp (map (lambda (type arg)
+		       (case type
+			 ((*)
+			  (cond ((string? arg) (s->p arg))
+				((bytevector? arg) (b->p arg))
+				;; Let Guile complain, if not the proper
+				;; one
+				(else arg)))
+			 (else arg)))
+		     arg-types args*)))))
 
 (define (make-c-callback ret args proc)
   (procedure->pointer ret proc args))

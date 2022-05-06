@@ -287,12 +287,12 @@ it behave as if nothing is passed.
 
 ## Supporting implementations
 
-- Sagittarius (0.6.5 or later)
-- Vicare (0.3d7)
-- Mosh (0.2.7)
+- Sagittarius (0.9.8 or later)
+- ~~Vicare (0.3d7)~~
+- ~~Mosh (0.2.7)~~
 - Racket (plt-r6rs 6.1.1)
-- Guile (2.0.11)
-- Larceny (v0.98)
+- Guile (3.0.8)
+- ~~Larceny (v0.98)~~
 - Chez Scheme (v9.5)
 
 ## Limitation per implementations
