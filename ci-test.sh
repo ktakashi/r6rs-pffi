@@ -1,6 +1,6 @@
 #!/bin/bash
 
-declare -a implementations=(sagittarius@0.9.2 chez@v9.5)
+declare -a implementations=($(scheme-env list -l))
 
 echo "Preparing for Chez Scheme"
 create_symlink() {
