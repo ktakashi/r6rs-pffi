@@ -53,6 +53,7 @@
             int64_t uint64_t
             pointer callback
             void
+	    ___
 
             ;; pointer ref
             pointer-ref-c-uint8
@@ -118,6 +119,7 @@
     (import (rnrs)
             (only (guile) dynamic-link dynamic-pointer)
             (system foreign)
+	    (only (srfi :1) drop-right split-at)
             (only (srfi :13) string-index-right))
 
 (define-syntax callback
@@ -136,6 +138,7 @@
 (define uint32_t       uint32)
 (define int64_t        int64)
 (define uint64_t       uint64)
+(define ___            '___) ;; dummy
 
 (define (open-shared-object path)
   (let* ((index (string-index-right path #\.))
@@ -151,20 +154,49 @@
 (define (make-c-function lib ret name arg-types)
   (define (s->p s) (b->p (string->utf8 s)))
   (define (b->p bv) (bytevector->pointer bv))
-  (let ((fp (pointer->procedure ret
-			       (lookup-shared-object lib (symbol->string name))
-			       arg-types)))
-    (lambda args*
-      (apply fp (map (lambda (type arg)
-		       (case type
-			 ((*)
-			  (cond ((string? arg) (s->p arg))
-				((bytevector? arg) (b->p arg))
-				;; Let Guile complain, if not the proper
-				;; one
-				(else arg)))
-			 (else arg)))
-		     arg-types args*)))))
+  (define ptr (lookup-shared-object lib (symbol->string name)))
+  (define (convert-arg type arg)
+    (case type
+      ((*)
+       (cond ((string? arg) (s->p arg))
+	     ((bytevector? arg) (b->p arg))
+	     ;; Let Guile complain, if not the proper
+	     ;; one
+	     (else arg)))
+      (else arg)))
+  (define (arg->type arg)
+    ;; it's a bit awkward but no other way
+    (cond ((number? arg)
+	   (cond ((and (exact? arg) (integer? arg))
+		  (cond ((fixnum? arg) int32_t)
+			((<= (bitwise-length arg) 64) int64_t)
+			(else (assertion-violation name "Too big integer"
+						   arg))))
+		 ;; sorry we don't know if this is float or double...
+		 ((real? arg) double)
+		 (else (assertion-violation name "Unsuported number" arg))))
+	  ((or (string? arg) (bytevector? arg)) pointer)
+	  (else (assertion-violation name "Unsuported type" arg))))
+		   
+  (cond ((memq ___ arg-types) =>
+	 (lambda (l)
+	   (unless (null? (cdr l))
+	     (assertion-violation
+	      'make-c-function
+	      "___ must be the last of argument type"
+	      arg-types))
+	   (let ((required-args (remove (lambda (e) (eq? ___ e)) arg-types)))
+	     (lambda args*
+	       (let-values (((required rest)
+			     (split-at args* (- (length required-args) 1))))
+		 (let* ((real-arg-types (append (drop-right arg-types 1)
+						(map arg->type rest)))
+			(fp (pointer->procedure ret ptr real-arg-types)))
+		   (apply fp (map convert-arg real-arg-types args*))))))))
+	(else
+	 (let ((fp (pointer->procedure ret ptr arg-types)))
+	   (lambda args*
+	     (apply fp (map convert-arg arg-types args*)))))))
 
 (define (make-c-callback ret args proc)
   (procedure->pointer ret proc args))

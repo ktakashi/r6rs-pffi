@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 /*  
     test C functions.
@@ -55,6 +56,23 @@ void fill_n(int *arr, int size, int (*f)(int))
   }  
 }
 
+
+int sum(int n, ...)
+{
+  va_list l;
+  int sum = 0;
+  int x;
+  
+  va_start(l, n);
+
+  for (x = 0; x < n; x++) {
+    sum += va_arg(l, int);
+  }
+  
+  va_end(l);
+  return sum;
+  
+}
 
 struct st1
 {

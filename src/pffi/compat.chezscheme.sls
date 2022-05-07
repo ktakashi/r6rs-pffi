@@ -53,6 +53,7 @@
             int64_t uint64_t
             pointer callback
             void
+	    ___
 
             ;; pointer ref
             pointer-ref-c-uint8
@@ -214,6 +215,7 @@
 (define double         'double)
 (define float          'float)
 (define pointer        'void*)
+(define ___            '___) ;; varargs
 
 (define (open-shared-object path)
   (load-shared-object path)

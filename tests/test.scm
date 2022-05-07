@@ -329,5 +329,8 @@
 		       (fields ((callback double (double pointer))  function)))
 		    (environment '(pffi)))))
 
+;; varargs
+(let ((sum (foreign-procedure test-lib int sum (int ___))))
+  (test-equal 10 (sum 4 1 2 3 4)))
 
 (test-end)
