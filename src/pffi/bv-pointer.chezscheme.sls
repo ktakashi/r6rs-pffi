@@ -38,7 +38,7 @@
 (define dummy
   (case (machine-type)
     ((ta6le a6le i3le ti3le arm32le ppc32le) (load-shared-object "libc.so.6"))
-    ((i3osx ti3osx a6osx ta6osx) (load-shared-object "libc.dylib"))
+    ((i3osx ti3osx a6osx ta6osx arm64osx tarm64osx) (load-shared-object "libc.dylib"))
     ((ta6nt a6nt i3nt ti3nt) (load-shared-object "msvcrt.dll"))
     (else (load-shared-object "libc.so"))))
 

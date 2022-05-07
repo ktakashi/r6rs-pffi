@@ -116,8 +116,9 @@
             pointer->integer
             integer->pointer
 
-	    ;; for testing
-	    pointer-statistic
+	    ;; Chez-specific exports
+            pointer-tracker
+            cleanup-bytevector-locks!
             )
     (import (rnrs)
             (rename (pffi bv-pointer)
@@ -129,7 +130,7 @@
                   foreign-procedure
                   ftype-pointer-address
                   foreign-entry foreign-sizeof foreign-ref foreign-set!
-		  make-weak-eq-hashtable
+                  make-parameter
 		  collect
 		  make-guardian collect-request-handler))
 
@@ -170,26 +171,32 @@
 	(else (assertion-violation 'pointer->bytevector "pointer required"
 				   pointer))))
 
+;; Parameter to allow tracking pointer creation in `bytevector->pointer`.
+(define pointer-tracker
+  (let ()
+    (define (pointer-tracker-check v)
+      (unless (procedure? v)
+        (assertion-violation 'pointer-tracker "Given value is not a pointer-tracker" v))
+      v)
+    (define (default bv ptr)
+      #f)
+    (make-parameter default pointer-tracker-check)))
+
 ;; finalizer emulator
-(define *pointer-table* (make-weak-eq-hashtable))
-(define *refcount-table* (make-weak-eq-hashtable))
 (define garbage-pool (make-guardian))
 
 (define (bytevector->pointer bv)
-  (define (finalize! p bv)
-    (garbage-pool p)
-    (hashtable-set! *pointer-table* p bv)
-    (hashtable-update! *refcount-table* bv (lambda (v) (+ v 1)) 0)
-    (lock-object bv)
-    p)
-  (finalize! (make-bytevector-pointer bv) bv))
-
-(define (pointer-statistic)
-  (list (hashtable-size *pointer-table*)
-	(hashtable-keys *pointer-table*)
-	(let-values (((keys values) (hashtable-entries *refcount-table*)))
-	  (vector-map cons keys values))))
-	
+  ;; We lock for each bytevector->pointer, unlocking happens when
+  ;; ptr is collected. This way we have to unlock as many times as
+  ;; there are pointers created.
+  ;; Lock needs to be taken before we take the pointer.
+  (lock-object bv)
+  (guard (err [else (unlock-object bv) (raise-continuable err)])
+    (let ([ptr (make-bytevector-pointer bv)])
+      ;; bv is registered as representative since we want to access it for unlocking.
+      (garbage-pool ptr bv)
+      ((pointer-tracker) bv ptr)
+      ptr)))
 
 (define-syntax callback
   (syntax-rules ()
@@ -400,17 +407,16 @@
 (define-deref uint64)
 (define-deref pointer make-integer-pointer pointer->integer)
 
+;; Unlock objects that are referenced by the pool.
+(define (cleanup-bytevector-locks!)
+  (do ((x (garbage-pool) (garbage-pool)))
+      ((not x))
+    (unlock-object x)))
+
 ;; This has to be the last
 (let ((saved (collect-request-handler)))
   (collect-request-handler
    (lambda ()
      (saved)
-     (do ((x (garbage-pool) (garbage-pool)))
-	 ((not x))
-       (cond ((hashtable-ref *pointer-table* x #f) =>
-	      (lambda (bv)
-		(hashtable-update! *refcount-table* bv (lambda (v) (- v 1)) 0)
-		(when (<= (hashtable-ref *refcount-table* bv 0) 0)
-		  (unlock-object bv)
-		  (hashtable-delete! *refcount-table* bv)))))))))
+     (cleanup-bytevector-locks!))))
 )
