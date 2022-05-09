@@ -125,6 +125,7 @@
             (rename (pffi bv-pointer)
                     (bytevector->pointer bytevector->address))
 	    (pffi helper)
+	    (pffi misc)
             (only (chezscheme)
                   load-shared-object
                   lock-object foreign-callable-entry-point

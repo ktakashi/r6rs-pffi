@@ -54,6 +54,7 @@
             int64_t uint64_t
             pointer callback
             void
+	    ___
 
             ;; pointer ref
             pointer-ref-c-uint8
@@ -140,6 +141,7 @@
 (define int64_t        _int64)
 (define uint64_t       _uint64)
 (define pointer        _pointer)
+(define ___            '___)
 
 ;; for convenience
 (define int8         _int8)
@@ -179,12 +181,20 @@
 
 (define (make-c-function lib ret name arg-type)
   ;; TODO failure thunk, what should we do when it couldn't be found
-  (get-ffi-obj (symbol->string name) lib
-               ;; DAMN YOU MORON!!!
-               ;; seems this doesn't accept mutable pairs
-               ;; so convert it.
-               (_cprocedure (->immutable-list arg-type) ret)
-               (lambda () (error 'make-c-function "not found" name))))
+  (let ((f (get-ffi-obj (symbol->string name) lib
+			;; DAMN YOU MORON!!!
+			;; seems this doesn't accept mutable pairs
+			;; so convert it.
+			(_cprocedure (->immutable-list arg-type) ret)
+			(lambda () (error 'make-c-function "not found" name)))))
+    (define (convert-arg type arg)
+      (cond ((eq? type pointer)
+	     (cond ((string? arg)
+		    (string->utf8 (string-append arg "\x0;")))
+		   (else arg)))
+	    (else arg)))
+    (lambda arg*
+      (apply f (map convert-arg arg-type arg*)))))
 
 (define (make-c-callback ret args proc) proc)
 
@@ -320,18 +330,20 @@
 
 (define (bytevector->pointer bv . maybe-offset)
   ;; seems not offset is possible
+  ;;(cast bv _scheme _gcpointer)
   (u8vector->cpointer bv))
 
 (define (pointer->bytevector p len . maybe-offset)
-  ;; ignore offset
-  (make-sized-byte-string p len))
+  (define offset (if (null? maybe-offset) 0 (car maybe-offset)))
+  ;; For CS implementation, make-sized-byte-string is not supported
+  ;; So we do manually (since Racket v8?)
+  (let ((bv (make-bytevector len)))
+    (do ((i 0 (+ i 1)))
+	((= i len) bv)
+      (bytevector-u8-set! bv i (pointer-ref-c-uint8 p (+ i offset))))))
 
 ;; assume it's _gcpointer...
-(define (pointer->integer p)
-  (cast p _gcpointer (if (= size-of-pointer 8) _uint64 _uint32)))
-
-(define (integer->pointer i)
-  (cast i (if (= size-of-pointer 8) _uint64 _uint32) _gcpointer))
-
+(define (pointer->integer p) (cast p _pointer _sintptr))
+(define (integer->pointer i) (cast i _sintptr _pointer))
 
 )

@@ -31,8 +31,21 @@ mosh: prepare
 	cd tests; mosh --loadpath=../src test.scm
 	cd tests; nmosh --loadpath=../src test.scm
 
-racket: prepare
-	cd tests; plt-r6rs ++path ../src test.scm
+prepare-racket:
+# Not sure since when, but Racket requires either platform specific extension
+# e.g. dynlib, or no extension.
+	cd tests; gcc $(CFLAGS) -shared -Wall -o functions functions.c
+# Don't they have oneshot library installation command?
+	plt-r6rs --force --install src/pffi/compat.mzscheme.sls
+	plt-r6rs --force --install src/pffi/misc.sls
+	plt-r6rs --force --install src/pffi/procedure.sls
+	plt-r6rs --force --install src/pffi/variable.sls
+	plt-r6rs --force --install src/pffi/pointers.sls
+	plt-r6rs --force --install src/pffi/struct.sls
+	plt-r6rs --force --install src/pffi.sls
+
+racket: prepare prepare-racket
+	cd tests; plt-r6rs test.scm
 
 guile: prepare
 	cd tests; guile --no-auto-compile --r6rs -L ../src test.scm

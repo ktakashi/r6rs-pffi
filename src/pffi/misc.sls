@@ -29,6 +29,6 @@
 ;;;
 
 (library (pffi misc)
-    (export string-map take drop split-at)
+    (export string-map take drop split-at drop-right)
     (import (only (srfi :13) string-map)
-            (only (srfi :1) take drop split-at)))
+            (only (srfi :1) take drop drop-right split-at)))

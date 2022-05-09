@@ -288,12 +288,17 @@ it behave as if nothing is passed.
 ## Supporting implementations
 
 - Sagittarius (0.9.8 or later)
+- Racket (plt-r6rs v8.3)
+- Guile (3.0.8)
+- Chez Scheme (v9.5)
+
+The below implementations are no loger supported due to the inactiveness or
+officially declared to be archived.
+
+- ~~Larceny (v0.98)~~
 - ~~Vicare (0.3d7)~~
 - ~~Mosh (0.2.7)~~
-- Racket (plt-r6rs 6.1.1)
-- Guile (3.0.8)
-- ~~Larceny (v0.98)~~
-- Chez Scheme (v9.5)
+
 
 ## Limitation per implementations
 

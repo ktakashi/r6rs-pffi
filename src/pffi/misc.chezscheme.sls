@@ -29,7 +29,7 @@
 ;;;
 
 (library (pffi misc)
-    (export string-map take drop split-at)
+    (export string-map take drop split-at drop-right)
     (import (rnrs)
             (only (chezscheme) reverse!))
 ;; this is good enough
@@ -44,6 +44,14 @@
 (define (drop lis k)
   (let iter ((lis lis) (k k))
     (if (zero? k) lis (iter (cdr lis) (- k 1)))))
+
+(define (drop-right lis k)
+  (or (integer? k)
+      (assertion-violation 'drop-right "integer required for k" k))
+  (let recur ((lag lis) (lead (drop lis k)))
+    (if (pair? lead)
+	(cons (car lag) (recur (cdr lag) (cdr lead)))
+	'())))
 
 (define (split-at x k)
   (let recur ((lis x) (k k) (r '()))

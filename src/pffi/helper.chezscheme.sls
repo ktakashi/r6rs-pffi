@@ -32,8 +32,7 @@
 (library (pffi helper)
     (export pffi-type->foreign-type
 	    adjust-argument-types
-	    ___
-	    split-at drop drop-right)
+	    ___)
     (import (rnrs)
 	    (only (chezscheme) reverse!))
 
@@ -79,27 +78,4 @@
        (let ((t (pffi-type->foreign-type (syntax->datum #'type))))
 	 (types #'(rest ...) (if t (cons t acc) acc) varargs?)))))
   (datum->syntax k (types args '() #f)))
-
-(define (split-at x k)
-  (or (integer? k)
-      (assertion-violation 'split-at "integer required for k" k))
-  (let recur ((lis x) (k k) (r '()))
-    (cond ((zero? k) (values (reverse! r) lis))
-	  ((null? lis) (error 'split-at "given list it too short"))
-	  (else (recur (cdr lis) (- k 1) (cons (car lis) r))))))
-
-(define (drop lis k)
-  (or (integer? k)
-      (assertion-violation 'drop "integer required for k" k))
-  (let iter ((lis lis) (k k))
-    (if (zero? k) lis (iter (cdr lis) (- k 1)))))
-
-(define (drop-right lis k)
-  (or (integer? k)
-      (assertion-violation 'drop-right "integer required for k" k))
-  (let recur ((lag lis) (lead (drop lis k)))
-    (if (pair? lead)
-	(cons (car lag) (recur (cdr lag) (cdr lead)))
-	'())))
-
 )

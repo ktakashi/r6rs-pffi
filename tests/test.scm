@@ -176,7 +176,8 @@
     (test-assert "elements" (st-parent-elements st))
     (let ((p (st-parent-elements st)))
       (do ((i 0 (+ i 1))) ((= i 10) #t)
-	(test-equal "element" i (pointer-ref-c-int32 p (* i size-of-int32_t)))))
+	(test-equal (string-append "element (" (number->string i) ")")
+		    i (pointer-ref-c-int32 p (* i size-of-int32_t)))))
     (test-equal "attr" 5 (st-child-attr st))
     ((foreign-procedure test-lib void free_st_values (pointer))
      (bytevector->pointer st))))
@@ -201,7 +202,8 @@
     (test-assert "elements" (st-parent-elements st))
     (let ((p (st-parent-elements st)))
       (do ((i 0 (+ i 1))) ((= i 10) #t)
-	(test-equal "element" i (pointer-ref-c-int32 p (* i size-of-int32_t)))))
+	(test-equal (string-append "element (" (number->string i) ")")
+		    i (pointer-ref-c-int32 p (* i size-of-int32_t)))))
     (test-equal "attr" 5 (st-child-attr st))
     ((foreign-procedure test-lib void free_st_values (pointer))
      (bytevector->pointer st))))
@@ -233,8 +235,10 @@
 
 ;; passing string or bytevector to pointer type
 (let ((id-str (foreign-procedure test-lib pointer id_str (pointer))))
-  (test-equal (string->utf8 "foo") (pointer->bytevector (id-str "foo") 3))
-  (test-equal #vu8(1 2 3) (pointer->bytevector (id-str #vu8(1 2 3)) 3)))
+  (test-equal "id-str (1)"
+	      (string->utf8 "foo") (pointer->bytevector (id-str "foo") 3))
+  (test-equal "id-str (2)"
+	      #vu8(1 2 3) (pointer->bytevector (id-str #vu8(1 2 3)) 3)))
 
 ;; alignment
 (define (?p p8 p4)

@@ -122,7 +122,11 @@
                (syntax-violation 'define-foreign-struct
                                  "only one alignment clause allowed"
                                  x clauses))
-           (loop #'rest fs par proto #'a))
+	   (if (identifier? #'a)
+	       (loop #'rest fs par proto #'a)
+	       ;; Apparently, PLT R6RS creates syntax object against
+	       ;; number / string
+	       (loop #'rest fs par proto (syntax->datum #'a))))
           (_ (syntax-violation 'define-foreign-struct
                                "invalid define-foreign-struct" x clauses)))))
 
