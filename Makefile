@@ -36,6 +36,7 @@ prepare-racket:
 # e.g. dynlib, or no extension.
 	cd tests; gcc $(CFLAGS) -shared -Wall -o functions functions.c
 # Don't they have oneshot library installation command?
+#	raco pkg install -t file -n pffi/helper --pkgs --force pffi-helper.plt
 	plt-r6rs --force --install src/pffi/compat.mzscheme.sls
 	plt-r6rs --force --install src/pffi/misc.sls
 	plt-r6rs --force --install src/pffi/procedure.sls

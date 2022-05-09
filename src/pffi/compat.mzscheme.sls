@@ -117,9 +117,15 @@
             integer->pointer
             )
     (import (rnrs)
+	    (rnrs eval)
             (ffi unsafe)
             (ffi vector)
-            (rename (only (racket base) cons) (cons icons))
+	    (for (rename (only (racket base) cons string->keyword read)
+			 (cons icons)
+			 (read racket:read))
+		 run expand)
+	    (pffi misc)
+	    ;; (pffi helper)
             (only (srfi :13) string-index-right))
 
 (define char           _sint8)
@@ -178,23 +184,67 @@
           ((pair? p) (icons (car p) (loop (cdr p))))
           (else p))))
 
+(define :varargs-after (string->keyword "varargs-after"))
 
 (define (make-c-function lib ret name arg-type)
-  ;; TODO failure thunk, what should we do when it couldn't be found
-  (let ((f (get-ffi-obj (symbol->string name) lib
-			;; DAMN YOU MORON!!!
-			;; seems this doesn't accept mutable pairs
-			;; so convert it.
-			(_cprocedure (->immutable-list arg-type) ret)
-			(lambda () (error 'make-c-function "not found" name)))))
+  (define (parse-arg-types arg-type)
+    (let loop ((n 0) (r '()) (types arg-type))
+      (cond ((null? types) (values (reverse r) #f))
+	    ((eq? ___ (car types))
+	     (unless (null? (cdr types))
+	       (assertion-violation 'make-c-function "___ must be the last"
+				    arg-type))
+	     (values (reverse r) n))
+	    (else (loop (+ n 1) (cons (car types) r) (cdr types))))))
+  (let-values (((required-type after) (parse-arg-types arg-type)))
     (define (convert-arg type arg)
       (cond ((eq? type pointer)
 	     (cond ((string? arg)
 		    (string->utf8 (string-append arg "\x0;")))
 		   (else arg)))
 	    (else arg)))
-    (lambda arg*
-      (apply f (map convert-arg arg-type arg*)))))
+    (define (arg->type arg)
+      (cond ((string? arg) _string)
+	    ((symbol? arg) _symbol)
+	    ((bytevector? arg) _pointer)
+	    ((number? arg)
+	     (cond ((and (exact? arg) (integer? arg))
+		    (cond ((fixnum? arg) _fixnum)
+			  ((<= (bitwise-length arg) 64) _int64)
+			  (else (assertion-violation 'make-c-function
+						     "Number is too big" arg))))
+		   ((real? arg) _double)
+		   (else (assertion-violation 'make-c-function
+					      "Complex number not supported"
+					      arg))))
+	    ((cpointer? arg) _pointer)
+	    (else (assertion-violation 'make-c-function
+				       "Unsupported argument" arg))))
+    (if after
+	(lambda arg*
+	  (define (cprocedure input-type output-type after)
+	    (eval `(_cprocedure ',input-type ',output-type
+				,:varargs-after ,after)
+		  (environment '(racket base) '(pffi compat) '(ffi unsafe))))
+	  (let-values (((required rest) (split-at arg* after)))
+	    (let ((converted (map convert-arg required-type required))
+		  (rest-types (map arg->type rest)))
+	      (define f (get-ffi-obj
+			 (symbol->string name) lib
+			 (cprocedure
+			  (->immutable-list (append required-type rest-types))
+			  ret after)
+			 (lambda ()
+			   (error 'make-c-function "not found" name))))
+	      (apply f (append converted rest)))))
+	(let ((f (get-ffi-obj (symbol->string name) lib
+			      ;; DAMN YOU MORON!!!
+			      ;; seems this doesn't accept mutable pairs
+			      ;; so convert it.
+			      (_cprocedure (->immutable-list required-type) ret)
+			      (lambda ()
+				(error 'make-c-function "not found" name)))))
+	  (lambda arg* (apply f (map convert-arg required-type arg*)))))))
 
 (define (make-c-callback ret args proc) proc)
 
