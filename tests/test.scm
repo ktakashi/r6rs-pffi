@@ -334,7 +334,6 @@
 
 ;; varargs
 (let ((sum (foreign-procedure test-lib int sum (int ___))))
-  ;; (write (sum 4 1 2 3 4)) (newline)
   (test-equal "variadic argument" 10 (sum 4 1 2 3 4)))
 
 (test-end)

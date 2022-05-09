@@ -107,6 +107,19 @@ Above types are all variable except `callback`. Callback is a procedure
 which is called from foreign world to Scheme world. Thus it may need to
 have foreign types.
 
+#### Variadic arguments
+
+C's variadic arguments (i.e. argument specified by `...`) can be written by
+specifying `___`. For example, suppose we have `sum` C function which takes
+an int as the number of the variadic arguments, and variadic arguments.
+To specify this, you can write like this
+
+```scheme
+(foreign-procedure lib int sum (int ___))
+```
+
+The `___` must be the last and must not appear more than once.
+
 ### Pointer operations
 
 #### [Procedure] `pointer?` _o_
