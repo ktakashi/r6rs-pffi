@@ -244,36 +244,37 @@
                      (chez-ret (datum->syntax #'k
                                 (pffi-type->foreign-type
 				 (syntax->datum #'ret)))))
-	 #'(let ()
-	     (define (b->p b) (pointer->integer (bytevector->pointer b)))
-             (define (s->p s)
-               (b->p (string->utf8 (string-append s "\x0;"))))
-	     (define (convert-arg type arg)
-	       (case type
-		 ((void*)
-		  (cond ((string? arg) (s->p arg))
-			((bytevector? arg) (b->p arg))
-			(else (pointer->integer arg))))
-		 (else arg)))
-	     (define (object->foreign-type arg)
-	       (cond ((number? arg)
-		      (cond ((and (exact? arg) (integer? arg))
-			     (cond ((fixnum? arg) int32_t)
-				   ((<= (bitwise-length arg) 64) int64_t)
-				   (else (assertion-violation 'name
-							      "Too big integer"
-							      arg))))
-			    ;; sorry we don't know if this is float or double...
-			    ((real? arg) double)
-			    (else
-			     (assertion-violation 'name
-						  "Unsuported number" arg))))
-		     ((or (string? arg) (bytevector? arg) (pointer? arg))
-		      pointer)
-		     (else
-		      (assertion-violation 'name
-					   "Unsuported Scheme object" arg))))
-	     (if varargs?
+	 ;; Minor optimisation not to have big code
+	 (if (syntax->datum #'varargs?)
+	     #'(let ()
+		 (define (b->p b) (pointer->integer (bytevector->pointer b)))
+		 (define (s->p s)
+		   (b->p (string->utf8 (string-append s "\x0;"))))
+		 (define (convert-arg type arg)
+		   (case type
+		     ((void*)
+		      (cond ((string? arg) (s->p arg))
+			    ((bytevector? arg) (b->p arg))
+			    (else (pointer->integer arg))))
+		     (else arg)))
+		 (define (object->foreign-type arg)
+		   (cond ((number? arg)
+			  (cond ((and (exact? arg) (integer? arg))
+				 (cond ((fixnum? arg) int32_t)
+				       ((<= (bitwise-length arg) 64) int64_t)
+				       (else (assertion-violation 'name
+					      "Too big integer" arg))))
+				;; sorry we don't know if this is
+				;; float or double...
+				((real? arg) double)
+				(else
+				 (assertion-violation 'name
+				  "Unsuported number" arg))))
+			 ((or (string? arg) (bytevector? arg) (pointer? arg))
+			  pointer)
+			 (else
+			  (assertion-violation 'name
+			   "Unsuported Scheme object" arg))))
 		 (let ((required-types (drop-right (list args ...) 1)))
 		   (lambda arg*
 		     (let* ((rest (drop arg* (length required-types)))
@@ -293,7 +294,18 @@
 					      arg*))))
 		       (case ret
 			 ((void*) (integer->pointer r))
-			 (else r)))))
+			 (else r))))))
+	     #'(let ()
+		 (define (b->p b) (pointer->integer (bytevector->pointer b)))
+		 (define (s->p s)
+		   (b->p (string->utf8 (string-append s "\x0;"))))
+		 (define (convert-arg type arg)
+		   (case type
+		     ((void*)
+		      (cond ((string? arg) (s->p arg))
+			    ((bytevector? arg) (b->p arg))
+			    (else (pointer->integer arg))))
+		     (else arg)))
 		 (let ((fp (foreign-procedure name-str (types ...) chez-ret))
 		       (arg-types (list args ...)))
 		   (lambda arg*
