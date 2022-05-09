@@ -20,7 +20,6 @@
 ;;      or can we assume it's always a procedure in any case?
 (test-assert "foreign-procedure" 
 	     (foreign-procedure test-lib int plus (int int)))
-
 (test-equal "plus" 2
 	    ((foreign-procedure test-lib int plus (int int)) 1 1))
 

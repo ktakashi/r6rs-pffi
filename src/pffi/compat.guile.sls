@@ -152,7 +152,7 @@
 (define (free-c-callback proc) #t) ;; for now.
 
 (define (make-c-function lib ret name arg-types)
-  (define (s->p s) (b->p (string->utf8 s)))
+  (define (s->p s) (b->p (string->utf8 (string-append s "\x0;"))))
   (define (b->p bv) (bytevector->pointer bv))
   (define ptr (lookup-shared-object lib (symbol->string name)))
   (define (convert-arg type arg)
@@ -175,7 +175,7 @@
 		 ;; sorry we don't know if this is float or double...
 		 ((real? arg) double)
 		 (else (assertion-violation name "Unsuported number" arg))))
-	  ((or (string? arg) (bytevector? arg)) pointer)
+	  ((or (string? arg) (bytevector? arg) (pointer? arg)) pointer)
 	  (else (assertion-violation name "Unsuported type" arg))))
 		   
   (cond ((memq ___ arg-types) =>

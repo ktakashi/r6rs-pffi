@@ -121,8 +121,10 @@
             cleanup-bytevector-locks!
             )
     (import (rnrs)
+	    (rnrs eval)
             (rename (pffi bv-pointer)
                     (bytevector->pointer bytevector->address))
+	    (pffi helper)
             (only (chezscheme)
                   load-shared-object
                   lock-object foreign-callable-entry-point
@@ -222,7 +224,6 @@
 (define double         'double)
 (define float          'float)
 (define pointer        'void*)
-(define ___            '___) ;; varargs
 
 (define (open-shared-object path)
   (load-shared-object path)
@@ -234,109 +235,82 @@
 
 (define-syntax make-c-function
   (lambda (x)
-    (define (->cheztype type)
-      (case type
-        ((void          ) 'void)
-        ((char          ) 'integer-8)
-        ((unsigned-char ) 'unsigned-8)
-        ((short         ) 'short)
-        ((unsigned-short) 'unsigned-short)
-        ((int           ) 'int)
-        ((unsigned-int  ) 'unsigned-int)
-        ((long          ) 'long)
-        ((unsigned-long ) 'unsigned-long)
-        ((int8_t        ) 'integer-8)
-        ((uint8_t       ) 'unsigned-8)
-        ((int16_t       ) 'integer-16)
-        ((uint16_t      ) 'unsigned-16)
-        ((int32_t       ) 'integer-32)
-        ((uint32_t      ) 'unsigned-32)
-        ((int64_t       ) 'integer-64)
-        ((uint64_t      ) 'unsigned-64)
-        ((double        ) 'double)
-        ((float         ) 'float)
-        ((pointer       ) 'void*)
-        ;; let chez complain
-        (else type)))
-    (define (unwrap-callback k args)
-      (define (types args acc)
-        (syntax-case args ()
-          (() (reverse acc))
-          (((type ignore ...) rest ...)
-           (and (identifier? #'type) (eq? 'callback (syntax->datum #'type)))
-           (types #'(rest ...) (cons 'void* acc)))
-          ((type rest ...)
-           (types #'(rest ...)
-                  (cons (->cheztype (syntax->datum #'type)) acc)))))
-      (datum->syntax k (types args '())))
-
     (syntax-case x (quote list)
       ((k lib ret (quote name) (list args ...))
        (identifier? #'name)
        (with-syntax ((name-str (symbol->string (syntax->datum #'name)))
-                     ((types ...) (unwrap-callback #'k #'(args ...)))
+                     (((types ...) varargs?)
+		      (adjust-argument-types #'k #'(args ...)))
                      (chez-ret (datum->syntax #'k
-                                (->cheztype (syntax->datum #'ret)))))
-         #'(let ((fp (foreign-procedure name-str (types ...) chez-ret))
-                 (arg-types (list args ...)))
-             (define (b->p b) (pointer->integer (bytevector->pointer b)))
+                                (pffi-type->foreign-type
+				 (syntax->datum #'ret)))))
+	 #'(let ()
+	     (define (b->p b) (pointer->integer (bytevector->pointer b)))
              (define (s->p s)
                (b->p (string->utf8 (string-append s "\x0;"))))
-             (lambda arg*
-               (let ((r (apply fp
-                               (map (lambda (type arg)
-                                      (case type
-                                        ((void*)
-                                         (cond ((string? arg) (s->p arg))
-                                               ((bytevector? arg) (b->p arg))
-                                               (else (pointer->integer arg))))
-                                        (else arg)))
-                                    arg-types arg*))))
-                 (case ret
-                   ((void*) (integer->pointer r))
-                   (else r))))))))))
+	     (define (convert-arg type arg)
+	       (case type
+		 ((void*)
+		  (cond ((string? arg) (s->p arg))
+			((bytevector? arg) (b->p arg))
+			(else (pointer->integer arg))))
+		 (else arg)))
+	     (define (object->foreign-type arg)
+	       (cond ((number? arg)
+		      (cond ((and (exact? arg) (integer? arg))
+			     (cond ((fixnum? arg) int32_t)
+				   ((<= (bitwise-length arg) 64) int64_t)
+				   (else (assertion-violation 'name
+							      "Too big integer"
+							      arg))))
+			    ;; sorry we don't know if this is float or double...
+			    ((real? arg) double)
+			    (else
+			     (assertion-violation 'name
+						  "Unsuported number" arg))))
+		     ((or (string? arg) (bytevector? arg) (pointer? arg))
+		      pointer)
+		     (else
+		      (assertion-violation 'name
+					   "Unsuported Scheme object" arg))))
+	     (if varargs?
+		 (let ((required-types (drop-right (list args ...) 1)))
+		   (lambda arg*
+		     (let* ((rest (drop arg* (length required-types)))
+			    (rest-types (map object->foreign-type rest))
+			    ;; FIXME: We don't want to use `eval` here
+			    ;;        to reduce compiled code size.
+			    ;; This may not be an issue as this requires a
+			    ;; special marker for variadic argument.
+			    ;; See:
+			    ;;  https://github.com/ktakashi/r6rs-pffi/issues/5
+			    (fp (eval `(foreign-procedure name-str
+					(,@required-types . ,rest-types)
+					chez-ret)
+				      (environment '(chezscheme))))
+			    (r (apply fp (map convert-arg
+					      (append required-types rest-types)
+					      arg*))))
+		       (case ret
+			 ((void*) (integer->pointer r))
+			 (else r)))))
+		 (let ((fp (foreign-procedure name-str (types ...) chez-ret))
+		       (arg-types (list args ...)))
+		   (lambda arg*
+		     (let ((r (apply fp (map convert-arg arg-types arg*))))
+		       (case ret
+			 ((void*) (integer->pointer r))
+			 (else r))))))))))))
 (define-syntax make-c-callback
   (lambda (x)
-    (define (->cheztype type)
-      (case type
-        ((void          ) 'void)
-        ((char          ) 'integer-8)
-        ((unsigned-char ) 'unsigned-8)
-        ((short         ) 'short)
-        ((unsigned-short) 'unsigned-short)
-        ((int           ) 'int)
-        ((unsigned-int  ) 'unsigned-int)
-        ((long          ) 'long)
-        ((unsigned-long ) 'unsigned-long)
-        ((int8_t        ) 'integer-8)
-        ((uint8_t       ) 'unsigned-8)
-        ((int16_t       ) 'integer-16)
-        ((uint16_t      ) 'unsigned-16)
-        ((int32_t       ) 'integer-32)
-        ((uint32_t      ) 'unsigned-32)
-        ((int64_t       ) 'integer-64)
-        ((uint64_t      ) 'unsigned-64)
-        ((double        ) 'double)
-        ((float         ) 'float)
-        ((pointer       ) 'void*)
-        ;; let chez complain
-        (else type)))
-    (define (unwrap-callback k args)
-      (define (types args acc)
-        (syntax-case args ()
-          (() (reverse acc))
-          (((type ignore ...) rest ...)
-           (and (identifier? #'type) (eq? 'callback (syntax->datum #'type)))
-           (types #'(rest ...) (cons 'void* acc)))
-          ((type rest ...)
-           (types #'(rest ...)
-                  (cons (->cheztype (syntax->datum #'type)) acc)))))
-      (datum->syntax k (types args '())))
     (syntax-case x (list)
       ((k ret (list arg* ...) body)
-       (with-syntax (((types ...) (unwrap-callback #'k #'(arg* ...)))
-                     (chez-ret (datum->syntax #'k (->cheztype (syntax->datum #'ret)))))
-         #'(let ((args (list arg* ...)))
+       (with-syntax ((((types ...) varargs?)
+		      (adjust-argument-types #'k #'(arg* ...)))
+                     (chez-ret (datum->syntax #'k
+				(pffi-type->foreign-type
+				 (syntax->datum #'ret)))))
+         #'(let ((args '(types ...)))
              (define (wrap proc)
                (lambda vals
                  (let ((r (apply proc (map (lambda (type arg)
