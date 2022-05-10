@@ -186,7 +186,7 @@
 
 (define :varargs-after (string->keyword "varargs-after"))
 
-(define (make-c-function lib ret name arg-type)
+(define (make-c-function lib conv ret name arg-type)
   (define (parse-arg-types arg-type)
     (let loop ((n 0) (r '()) (types arg-type))
       (cond ((null? types) (values (reverse r) #f))

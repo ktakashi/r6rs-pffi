@@ -237,7 +237,7 @@
 (define-syntax make-c-function
   (lambda (x)
     (syntax-case x (quote list)
-      ((k lib ret (quote name) (list args ...))
+      ((k lib (quote (conv ...)) ret (quote name) (list args ...))
        (identifier? #'name)
        (with-syntax ((name-str (symbol->string (syntax->datum #'name)))
                      (((types ...) varargs?)
@@ -286,7 +286,7 @@
 			    ;; special marker for variadic argument.
 			    ;; See:
 			    ;;  https://github.com/ktakashi/r6rs-pffi/issues/5
-			    (fp (eval `(foreign-procedure name-str
+			    (fp (eval `(foreign-procedure conv ... name-str
 					(,@required-types . ,rest-types)
 					chez-ret)
 				      (environment '(chezscheme))))
@@ -307,7 +307,8 @@
 			    ((bytevector? arg) (b->p arg))
 			    (else (pointer->integer arg))))
 		     (else arg)))
-		 (let ((fp (foreign-procedure name-str (types ...) chez-ret))
+		 (let ((fp (foreign-procedure conv ... name-str
+					      (types ...) chez-ret))
 		       (arg-types (list args ...)))
 		   (lambda arg*
 		     (let ((r (apply fp (map convert-arg arg-types arg*))))

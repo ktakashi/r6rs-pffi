@@ -69,8 +69,10 @@
 
 (define-syntax foreign-procedure
   (syntax-rules ()
+    ((_ lib (conv ...) ret name (args ...))
+     (make-c-function lib '(conv ...) ret 'name (list args ...)))
     ((_ lib ret name (args ...))
-     (make-c-function lib ret 'name (list args ...)))))
+     (make-c-function lib '() ret 'name (list args ...)))))
 
 (define-syntax c-callback
   (lambda (x)

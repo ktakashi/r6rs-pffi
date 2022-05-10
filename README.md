@@ -43,10 +43,14 @@ accessing.
 Returns shared object.
 
 #### [Macro] `foreign-procedure` _shared-object_ _return-type_ _symbol-name_ (_types_ ...)
+#### [Macro] `foreign-procedure` _shared-object_ (_conv_ ...) _return-type_ _symbol-name_ (_types_ ...)
 
 Lookup foreign procedure _symbol-name_ from given _shared-object_ and returns
 foreign procedure. A foreign procedure is a mere procedure so users can just
 call as if it's a Scheme procedure.
+
+If the second form is used, then _conv_ must be implementation specific 
+calling conventions. For example `__cdecl` for Chez Scheme.
 
 #### [Macro] `c-callback` _return-type_ (_types_ ...) _proc_
 

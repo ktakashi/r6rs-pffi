@@ -9,17 +9,10 @@
               make-weak-eq-hashtable))
 
 (define *pointer-table* (make-weak-eq-hashtable))
-(define *refcount-table* (make-weak-eq-hashtable))
-(define (pointer-statistic)
-  (list (hashtable-size *pointer-table*)
-	(hashtable-keys *pointer-table*)
-	(let-values (((keys values) (hashtable-entries *refcount-table*)))
-	  (vector-map cons keys values))))
+(define (pointer-statistic) (hashtable-size *pointer-table*))
 
 ;; Set the tracker to count pointer allocations.
-(pointer-tracker (lambda (bv p)
-                   (hashtable-set! *pointer-table* p bv)
-                   (hashtable-update! *refcount-table* bv (lambda (v) (+ v 1)) 0)))
+(pointer-tracker (lambda (bv p) (hashtable-set! *pointer-table* p bv)))
 
 (test-begin "PFFI Chez specific")
 
@@ -53,7 +46,11 @@
 ;; make sure the locked pointers are gone
 (allocate-alot 1000)
 (collect)
-(test-assert (< (car (pointer-statistic)) 2))
+(test-assert (< (pointer-statistic) 2))
+
+(let ((sum (foreign-procedure test-lib (__collect_safe) int sum (int ___))))
+  (test-equal "variadic argument" 10 (sum 4 1 2 3 4)))
+
 
 (test-end)
 

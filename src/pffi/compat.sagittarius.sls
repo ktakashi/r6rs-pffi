@@ -126,8 +126,13 @@
             (rename (uinteger->pointer integer->pointer))
             )
     (import (rnrs)
-            (rename (sagittarius ffi) (callback %callback))
+            (rename (sagittarius ffi)
+		    (callback %callback)
+		    (make-c-function %make-c-function))
             (sagittarius control))
+
+(define (make-c-function lib conv ret name args)
+  (%make-c-function lib ret name args))
 
 (define-syntax callback
   (syntax-rules ()
