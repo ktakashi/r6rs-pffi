@@ -30,9 +30,10 @@
 
 #!r6rs
 (library (pffi variable)
-  (export define-foreign-variable)
+  (export define-foreign-variable define-type-alias)
   (import (rnrs)
           (for (pffi misc) expand)
+	  (only (pffi misc) define-type-alias)
           (pffi compat))
 
   ;; to make FFI variable settable, we use macro

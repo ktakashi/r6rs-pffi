@@ -79,6 +79,15 @@ _type_ must be specified properly. Currently _type_ can only be numerical.
 The bound variable is settable, thus `set!` syntax can change the value
 if it's allowed.
 
+#### [Macro] `define-type-alias` _name_ _alias_
+
+Defines a type alias. Similar mechanism as `typedef` in C.
+
+Implementation note:
+For Chez Scheme, this registeres the given _name_ into a global storage.
+Also, this form can only be used different library from the foreign
+procedure bindings, otherwise the macro expander would complain.
+
 
 ### Foreign types
 

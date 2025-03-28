@@ -261,10 +261,11 @@
 		 (define (object->foreign-type arg)
 		   (cond ((number? arg)
 			  (cond ((and (exact? arg) (integer? arg))
-				 (cond ((fixnum? arg) int32_t)
-				       ((<= (bitwise-length arg) 64) int64_t)
-				       (else (assertion-violation 'name
-					      "Too big integer" arg))))
+				 (let ((n (bitwise-length arg)))
+				   (cond ((<= n 32) int32_t)
+					 ((<= n 64) int64_t)
+					 (else (assertion-violation 'name
+						 "Too big integer" arg)))))
 				;; sorry we don't know if this is
 				;; float or double...
 				((real? arg) double)

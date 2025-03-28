@@ -32,14 +32,30 @@
 (library (pffi helper)
     (export pffi-type->foreign-type
 	    adjust-argument-types
-	    ___)
+	    ___
+	    define-type-alias)
     (import (rnrs)
+	    (pffi global)
 	    (only (chezscheme) reverse!))
+
+;; Because chez's foreign-procedure is a syntax
+;; we need to do a bit sloppy way of handling typedef...
+(define-syntax define-type-alias
+  (lambda (x)
+    (define (register name alias)
+      (hashtable-set! *typedef-table*
+		      (syntax->datum name)
+		      (syntax->datum alias)))
+    (syntax-case x ()
+      ((_ name alias)
+       (register #'name #'alias)
+       #'(define name alias)))))
 
 ;; We need it here for free-identifier
 (define ___            '___) ;; varargs
 (define (pffi-type->foreign-type type)
-  (case type
+  (define resolved (hashtable-ref *typedef-table* type type))
+  (case resolved
     ((void          ) 'void)
     ((char          ) 'integer-8)
     ((unsigned-char ) 'unsigned-8)
@@ -61,8 +77,11 @@
     ((float         ) 'float)
     ((pointer       ) 'void*)
     ((___           ) #f) ;; ignore this for Chez
-    ;; let chez complain
-    (else type)))
+    ;; let chez complain if not defined
+    (else (if (eq? resolved type)
+	      resolved
+	      ;; maybe typedef of typedef 
+	      (pffi-type->foreign-type resolved)))))
 
 (define (adjust-argument-types k args)
   (define (types args acc varargs?)

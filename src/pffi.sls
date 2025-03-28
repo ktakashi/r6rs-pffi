@@ -115,6 +115,9 @@
             pointer-set-c-double!
             pointer-set-c-pointer!
 
+	    ;; typedef
+	    define-type-alias
+	    
             ;; variable
             define-foreign-variable
 

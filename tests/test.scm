@@ -2,7 +2,8 @@
 (import (rnrs)
 	(rnrs eval)
 	(pffi)
-	(srfi :64))
+	(srfi :64)
+	(types))
 
 (test-begin "PFFI")
 
@@ -334,6 +335,14 @@
 
 ;; varargs
 (let ((sum (foreign-procedure test-lib int sum (int ___))))
+  (display (sum 4 1 2 3 4)) (newline)
   (test-equal "variadic argument" 10 (sum 4 1 2 3 4)))
+
+;; typedef
+(let ((id-str (foreign-procedure test-lib ppp id_str (ppp))))
+  (test-equal "id-str (1)"
+	      (string->utf8 "foo") (pointer->bytevector (id-str "foo") 3))
+  (test-equal "id-str (2)"
+	      #vu8(1 2 3) (pointer->bytevector (id-str #vu8(1 2 3)) 3)))
 
 (test-end)

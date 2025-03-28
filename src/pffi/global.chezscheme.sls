@@ -1,8 +1,8 @@
 ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; src/pffi/misc.sls - Misc
+;;; src/pffi/global.chezscheme.sls - Global storage for Chez Scheme
 ;;;
-;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,9 +28,9 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-(library (pffi misc)
-    (export string-map take drop split-at drop-right
-	    (rename (define define-type-alias)))
-    (import (only (rnrs) define)
-	    (only (srfi :13) string-map)
-            (only (srfi :1) take drop drop-right split-at)))
+;; ugly solution, please FIXME
+#!r6rs
+(library (pffi global)
+    (export *typedef-table*)
+    (import (rnrs))
+(define *typedef-table* (make-eq-hashtable)))

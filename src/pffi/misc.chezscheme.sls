@@ -29,8 +29,9 @@
 ;;;
 
 (library (pffi misc)
-    (export string-map take drop split-at drop-right)
+    (export string-map take drop split-at drop-right define-type-alias)
     (import (rnrs)
+	    (only (pffi helper) define-type-alias)
             (only (chezscheme) reverse!))
 ;; this is good enough
 (define (string-map proc s) (list->string (map proc (string->list s))))

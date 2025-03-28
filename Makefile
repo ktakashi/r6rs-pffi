@@ -4,6 +4,8 @@ CFLAGS_32=
 CFLAGS_64=-fPIC
 CFLAGS=$(CFLAGS_$(LONG_BIT))
 
+CHEZ?=scheme
+
 all:
 	echo 'usage: make $traget'
 	echo '  sagittarius'
@@ -21,15 +23,15 @@ test: sagittarius mosh vicare racket guile larceny
 
 # Sagittarius and Vicare read shared object from LD_LIBRARY_PATH
 sagittarius: prepare
-	cd tests; sagittarius -L../src test.scm
+	cd tests; sagittarius -L../src -Llib test.scm
 
 vicare: prepare
-	cd test; vicare -L ../src test.scm
+	cd test; vicare -L ../src -L lib test.scm
 
 # Seems Mosh as well
 mosh: prepare
-	cd tests; mosh --loadpath=../src test.scm
-	cd tests; nmosh --loadpath=../src test.scm
+	cd tests; mosh --loadpath=../src --loadpath=lib test.scm
+	cd tests; nmosh --loadpath=../src --loadpath=lib  test.scm
 
 prepare-racket:
 # Not sure since when, but Racket requires either platform specific extension
@@ -49,7 +51,7 @@ racket: prepare prepare-racket
 	cd tests; plt-r6rs test.scm
 
 guile: prepare
-	cd tests; guile --no-auto-compile --r6rs -L ../src test.scm
+	cd tests; guile --no-auto-compile --r6rs -L ../src -L lib test.scm
 
 prepare-larceny:
 	cd tests; gcc -m32 -shared -Wall -o functions.so functions.c
@@ -57,12 +59,12 @@ prepare-larceny:
 # Larceny raises an error if PFFI.log is there...
 larceny: prepare-larceny
 	rm -f PFFI.log
-	cd tests; larceny -path ../src -r6rs -program test.scm
+	cd tests; larceny -path ../src -path lib -r6rs -program test.scm
 
 prepare-chez: prepare
 	$(shell test ! -f tests/lib/srfi/:64.sls && ln -s %3a64.chezscheme.sls tests/lib/srfi/:64.sls)
 	$(shell test ! -d tests/lib/srfi/:64 && ln -s %3a64 tests/lib/srfi/:64)
 
 chez: prepare-chez
-	cd tests; scheme --libdirs ../src:lib --program test.scm
-	cd tests; scheme --libdirs ../src:lib --program chez.test.scm
+	cd tests; $(CHEZ) --libdirs ../src:lib --program test.scm
+	cd tests; $(CHEZ) --libdirs ../src:lib --program chez.test.scm
