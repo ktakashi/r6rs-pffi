@@ -34,8 +34,8 @@
             c-callback
             free-c-callback
             open-shared-object
+	    lookup-shared-object
             ;; TODO should we export these primitives?
-            ;; lookup-shared-object
             ;; make-c-function
             ;; make-c-callback
 
