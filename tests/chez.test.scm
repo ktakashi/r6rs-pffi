@@ -19,7 +19,7 @@
 (define test-lib (open-shared-object "./functions.so"))
 (define fill-one (foreign-procedure test-lib void fill_one (pointer int)))
 (define fill-n (foreign-procedure test-lib void fill_n
-				  (pointer int (callback int int))))
+				  (pointer int (callback int (int)))))
 
 (define (allocate-alot n)
   (do ((i 0 (+ i 1))

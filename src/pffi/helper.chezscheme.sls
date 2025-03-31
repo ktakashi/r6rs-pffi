@@ -31,25 +31,27 @@
 #!r6rs
 (library (pffi helper)
     (export pffi-type->foreign-type
+	    registered-alias?
 	    adjust-argument-types
-	    ___
+	    callback ___
 	    define-type-alias)
     (import (rnrs)
 	    (pffi global)
-	    (only (chezscheme) reverse!))
+	    (only (chezscheme) reverse! define-ftype))
 
 ;; Because chez's foreign-procedure is a syntax
 ;; we need to do a bit sloppy way of handling typedef...
 (define-syntax define-type-alias
   (lambda (x)
-    (define (register name alias)
-      (hashtable-set! *typedef-table*
-		      (syntax->datum name)
-		      (syntax->datum alias)))
+    (define (register-type-alias! name alias)
+      (hashtable-set! *typedef-table* name alias))
     (syntax-case x ()
       ((_ name alias)
-       (register #'name #'alias)
-       #'(define name alias)))))
+       (register-type-alias! (syntax->datum #'name)
+			     (syntax->datum #'alias))
+       #'(define-ftype name alias)))))
+
+(define (registered-alias? v) (hashtable-ref *typedef-table* v #f))
 
 ;; We need it here for free-identifier
 (define ___            '___) ;; varargs
@@ -83,18 +85,21 @@
 	      ;; maybe typedef of typedef 
 	      (pffi-type->foreign-type resolved)))))
 
-(define (adjust-argument-types k args)
+(define-syntax callback
+  (syntax-rules ()
+    ((_ ignore ...) void*)))
+
+(define (adjust-argument-types args)
   (define (types args acc varargs?)
-    (syntax-case args (___)
+    (syntax-case args (callback ___)
       (() (list (reverse! acc) varargs?))
-      (((type ignore ...) rest ...)
-       (and (identifier? #'type) (eq? 'callback (syntax->datum #'type)))
-       (types #'(rest ...) (cons 'void* acc) varargs?))
+      (((callback ret (ignore ...)) rest ...)
+       (types #'(rest ...) (cons #'void* acc) varargs?))
+      (((callback ignore ...) rest ...)
+       (syntax-violation 'foreign-procedure "Invalid callback format" args))
       ((___ a rest ...)
-       (syntax-violation 'adjust-argument-types "___ must be the last" args))
+       (syntax-violation 'foreign-procedure "___ must be the last" args))
       ((___) (types #'() acc #t))
-      ((type rest ...)
-       (let ((t (pffi-type->foreign-type (syntax->datum #'type))))
-	 (types #'(rest ...) (if t (cons t acc) acc) varargs?)))))
-  (datum->syntax k (types args '() #f)))
+      ((type rest ...) (types #'(rest ...) (cons #'type acc) varargs?))))
+  (types args '() #f))
 )

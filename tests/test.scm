@@ -2,12 +2,13 @@
 (import (rnrs)
 	(rnrs eval)
 	(pffi)
-	(srfi :64)
-	(types))
+	(srfi :64))
 
 (test-begin "PFFI")
 
 (define test-lib (open-shared-object "./functions.so"))
+
+(define-type-alias ppp pointer)
 
 ;; (define (print . args)
 ;;   (for-each display args) (newline)
@@ -35,8 +36,7 @@
   (test-assert "free" (free-c-callback proc)))
 
 (let ((proc (c-callback int ((pointer p)) 
-			(lambda (p)
-			  (pointer-ref-c-int32 p 0)))))
+			(lambda (p) (pointer-ref-c-int32 p 0)))))
   (define callback-proc
     (foreign-procedure test-lib int callback_proc2 
 		       ((callback int (pointer)) int)))
@@ -165,7 +165,6 @@
 	    (short attr)))
   (test-assert "struct ctr" (make-st-child (make-st-parent 
 					    0 (integer->pointer 0)) 0))
-  
   (let ((st (make-st-child (make-st-parent 0 (integer->pointer 0)) 0)))
     (test-assert "predicate (child)" (st-child? st))
     (test-assert "predicate (parent)" (st-parent? st))

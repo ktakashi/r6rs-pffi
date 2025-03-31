@@ -127,11 +127,12 @@
 	    (pffi helper)
 	    (pffi misc)
             (only (chezscheme)
+		  void
                   load-shared-object
                   lock-object foreign-callable-entry-point
                   foreign-callable unlock-object
                   foreign-procedure
-                  ftype-pointer-address
+                  ftype-pointer-address ftype-sizeof
                   foreign-entry foreign-sizeof foreign-ref foreign-set!
                   make-parameter
 		  collect
@@ -201,30 +202,27 @@
       ((pointer-tracker) bv ptr)
       ptr)))
 
-(define-syntax callback
-  (syntax-rules ()
-    ((_ ignore ...) 'callback)))
 ;; we don't use char defined in (chezscheme) due to the compatiliby
-(define void           'void)
-(define char           'integer-8)
-(define unsigned-char  'unsigned-8)
-(define short          'short)
-(define unsigned-short 'unsigned-short)
-(define int            'int)
-(define unsigned-int   'unsigned-int)
-(define long           'long)
-(define unsigned-long  'unsigned-long)
-(define int8_t         'integer-8)
-(define uint8_t        'unsigned-8)
-(define int16_t        'integer-16)
-(define uint16_t       'unsigned-16)
-(define int32_t        'integer-32)
-(define uint32_t       'unsigned-32)
-(define int64_t        'integer-64)
-(define uint64_t       'unsigned-64)
-(define double         'double)
-(define float          'float)
-(define pointer        'void*)
+;;(define-type-alias void           void)
+(define-type-alias char           integer-8)
+(define-type-alias unsigned-char  unsigned-8)
+(define-type-alias short          short)
+(define-type-alias unsigned-short unsigned-short)
+(define-type-alias int            int)
+(define-type-alias unsigned-int   unsigned-int)
+(define-type-alias long           long)
+(define-type-alias unsigned-long  unsigned-long)
+(define-type-alias int8_t         integer-8)
+(define-type-alias uint8_t        unsigned-8)
+(define-type-alias int16_t        integer-16)
+(define-type-alias uint16_t       unsigned-16)
+(define-type-alias int32_t        integer-32)
+(define-type-alias uint32_t       unsigned-32)
+(define-type-alias int64_t        integer-64)
+(define-type-alias uint64_t       unsigned-64)
+(define-type-alias double         double)
+(define-type-alias float          float)
+(define-type-alias pointer        void*)
 
 (define (open-shared-object path)
   (load-shared-object path)
@@ -241,10 +239,8 @@
        (identifier? #'name)
        (with-syntax ((name-str (symbol->string (syntax->datum #'name)))
                      (((types ...) varargs?)
-		      (adjust-argument-types #'k #'(args ...)))
-                     (chez-ret (datum->syntax #'k
-                                (pffi-type->foreign-type
-				 (syntax->datum #'ret)))))
+		      (adjust-argument-types #'(args ...))))
+	 ;; (display #'(types ...)) (newline)
 	 ;; Minor optimisation not to have big code
 	 (if (syntax->datum #'varargs?)
 	     #'(let ()
@@ -262,22 +258,22 @@
 		   (cond ((number? arg)
 			  (cond ((and (exact? arg) (integer? arg))
 				 (let ((n (bitwise-length arg)))
-				   (cond ((<= n 32) int32_t)
-					 ((<= n 64) int64_t)
+				   (cond ((<= n 32) 'int32_t)
+					 ((<= n 64) 'int64_t)
 					 (else (assertion-violation 'name
 						 "Too big integer" arg)))))
 				;; sorry we don't know if this is
 				;; float or double...
-				((real? arg) double)
+				((real? arg) 'double)
 				(else
 				 (assertion-violation 'name
 				  "Unsuported number" arg))))
 			 ((or (string? arg) (bytevector? arg) (pointer? arg))
-			  pointer)
+			  'pointer)
 			 (else
 			  (assertion-violation 'name
 			   "Unsuported Scheme object" arg))))
-		 (let ((required-types (drop-right (list args ...) 1)))
+		 (let ((required-types (drop-right '(args ...) 1)))
 		   (lambda arg*
 		     (let* ((rest (drop arg* (length required-types)))
 			    (rest-types (map object->foreign-type rest))
@@ -289,12 +285,12 @@
 			    ;;  https://github.com/ktakashi/r6rs-pffi/issues/5
 			    (fp (eval `(foreign-procedure conv ... name-str
 					(,@required-types . ,rest-types)
-					chez-ret)
+					ret)
 				      (environment '(chezscheme))))
 			    (r (apply fp (map convert-arg
 					      (append required-types rest-types)
 					      arg*))))
-		       (case ret
+		       (case (pffi-type->foreign-type 'ret)
 			 ((void*) (integer->pointer r))
 			 (else r))))))
 	     #'(let ()
@@ -302,18 +298,17 @@
 		 (define (s->p s)
 		   (b->p (string->utf8 (string-append s "\x0;"))))
 		 (define (convert-arg type arg)
-		   (case type
+		   (case (pffi-type->foreign-type type)
 		     ((void*)
 		      (cond ((string? arg) (s->p arg))
 			    ((bytevector? arg) (b->p arg))
 			    (else (pointer->integer arg))))
 		     (else arg)))
-		 (let ((fp (foreign-procedure conv ... name-str
-					      (types ...) chez-ret))
-		       (arg-types (list args ...)))
+		 (let ((fp (foreign-procedure conv ... name-str (types ...) ret))
+		       (arg-types '(args ...)))
 		   (lambda arg*
 		     (let ((r (apply fp (map convert-arg arg-types arg*))))
-		       (case ret
+		       (case (pffi-type->foreign-type 'ret)
 			 ((void*) (integer->pointer r))
 			 (else r))))))))))))
 (define-syntax make-c-callback
@@ -321,15 +316,12 @@
     (syntax-case x (list)
       ((k ret (list arg* ...) body)
        (with-syntax ((((types ...) varargs?)
-		      (adjust-argument-types #'k #'(arg* ...)))
-                     (chez-ret (datum->syntax #'k
-				(pffi-type->foreign-type
-				 (syntax->datum #'ret)))))
+		      (adjust-argument-types #'(arg* ...))))
          #'(let ((args '(types ...)))
              (define (wrap proc)
                (lambda vals
                  (let ((r (apply proc (map (lambda (type arg)
-                                             (case type
+                                             (case (pffi-type->foreign-type type)
                                                ((void*) (integer->pointer arg))
                                                (else arg)))
                                            args vals))))
@@ -337,7 +329,7 @@
                        (pointer->integer r)
                        r))))
              (let ((p (wrap body)))
-               (define code (foreign-callable p (types ...) chez-ret))
+               (define code (foreign-callable p (types ...) ret))
                (lock-object code)
                (foreign-callable-entry-point code))))))))
 
@@ -352,29 +344,32 @@
       ((k type)
        (with-syntax (((size ref set!) (datum->syntax #'k (gen-name #'type))))
          #'(begin
-             (define size (foreign-sizeof type))
+             (define size (ftype-sizeof type))
              (define (ref ptr offset)
-               (foreign-ref type (pointer->integer ptr) offset))
+               (foreign-ref (pffi-type->foreign-type 'type)
+			    (pointer->integer ptr) offset))
              (define (set! ptr offset value)
-               (foreign-set! type (pointer->integer ptr) offset value)))))
+               (foreign-set! (pffi-type->foreign-type 'type)
+			     (pointer->integer ptr) offset value)))))
       ((k type conv unwrap)
        (with-syntax (((size ref set!) (datum->syntax #'k (gen-name #'type))))
          #'(begin
-             (define size (foreign-sizeof type))
+             (define size (ftype-sizeof type))
              (define (ref ptr offset)
-               (conv (foreign-ref type (pointer->integer ptr) offset)))
+               (conv (foreign-ref (pffi-type->foreign-type 'type)
+				  (pointer->integer ptr) offset)))
              (define (set! ptr offset value)
-               (foreign-set! type (pointer->integer ptr) offset
-                             (unwrap value)))))))))
+               (foreign-set! (pffi-type->foreign-type 'type)
+			     (pointer->integer ptr) offset (unwrap value)))))))))
 
-(define int8    int8_t)
-(define uint8  uint8_t)
-(define int16   int16_t)
-(define uint16 uint16_t)
-(define int32   int32_t)
-(define uint32 uint32_t)
-(define int64   int64_t)
-(define uint64 uint64_t)
+(define-type-alias int8    int8_t)
+(define-type-alias uint8  uint8_t)
+(define-type-alias int16   int16_t)
+(define-type-alias uint16 uint16_t)
+(define-type-alias int32   int32_t)
+(define-type-alias uint32 uint32_t)
+(define-type-alias int64   int64_t)
+(define-type-alias uint64 uint64_t)
 
 (define-deref char)
 (define-deref unsigned-char)

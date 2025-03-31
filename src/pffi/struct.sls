@@ -41,7 +41,7 @@
             define-foreign-union)
     (import (rnrs)
             (pffi compat)
-            (only (pffi misc) take drop split-at))
+            (only (pffi misc) take drop split-at check-primitive))
 
 ;; use fields, protocol and parent from (rnrs)
 ;; e.g.
@@ -159,16 +159,18 @@
                    (assertion-violation 'define-foreign-struct
                                         "alignment must be  1, 2, 4, 8, or 16"
                                         align)))
-               (define sizeof (compute-size parent
-                                            (list (cons type sizeofs) ...)
-                                            align))
+               (define sizeof
+		 (compute-size parent
+                               (list (cons (check-primitive type) sizeofs) ...)
+                               align))
                (define this-protocol protocol)
                (define name
                  (make-foreign-struct-descriptor
                   'name
                   sizeof
-                  (struct-alignment (list (cons type sizeofs) ...))
-                  (list (cons* 'field types sizeofs) ...)
+                  (struct-alignment
+		   (list (cons (check-primitive type) sizeofs) ...))
+                  (list (cons* 'field (check-primitive types) sizeofs) ...)
                   parent
                   (if this-protocol #t #f)
                   ;; type-ref
@@ -297,13 +299,15 @@
            #'(begin
                (define sizeof
                  ;; the same as alignment :)
-                 (struct-alignment (list (cons type sizeofs) ...)))
+                 (struct-alignment
+		  (list (cons (check-primitive type) sizeofs) ...)))
                (define this-protocol protocol)
                (define name
                  (make-foreign-struct-descriptor
                   'name
                   sizeof
-                  (struct-alignment (list (cons type sizeofs) ...))
+                  (struct-alignment
+		   (list (cons (check-primitive type) sizeofs) ...))
                   ;; only one field so dummy
                   (list (cons* 'dummy 'name sizeof))
                   #f
@@ -564,7 +568,7 @@
 (define-syntax type->set!
   (lambda (x)
     (define (->set! k type)
-      (let ((n (syntax->datum type)))
+      (let ((n (check-primitive (syntax->datum type))))
         (if (memq n '(char unsigned-char short unsigned-short int unsigned-int
                       long unsigned-long float double
                       int8_t uint8_t int16_t uint16_t
@@ -581,7 +585,7 @@
 (define-syntax type->ref
   (lambda (x)
     (define (->ref k type)
-      (let ((n (syntax->datum type)))
+      (let ((n (check-primitive (syntax->datum type))))
         (if (memq n '(char unsigned-char short unsigned-short int unsigned-int
                       long unsigned-long float double
                       int8_t uint8_t int16_t uint16_t
