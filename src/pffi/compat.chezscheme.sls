@@ -202,7 +202,6 @@
       ((pointer-tracker) bv ptr)
       ptr)))
 
-;; we don't use char defined in (chezscheme) due to the compatiliby
 ;;(define-type-alias void           void)
 (define-type-alias char           integer-8)
 (define-type-alias unsigned-char  unsigned-8)
@@ -232,6 +231,15 @@
 
 (define (free-c-callback proc) (unlock-object proc))
 
+(define (b->p b) (pointer->integer (bytevector->pointer b)))
+(define (s->p s) (b->p (string->utf8 (string-append s "\x0;"))))
+(define (convert-arg type arg)
+  (case (pffi-type->foreign-type type)
+    ((void*)
+     (cond ((string? arg) (s->p arg))
+	   ((bytevector? arg) (b->p arg))
+	   (else (pointer->integer arg))))
+    (else arg)))
 (define-syntax make-c-function
   (lambda (x)
     (syntax-case x (quote list)
@@ -244,22 +252,12 @@
 	 ;; Minor optimisation not to have big code
 	 (if (syntax->datum #'varargs?)
 	     #'(let ()
-		 (define (b->p b) (pointer->integer (bytevector->pointer b)))
-		 (define (s->p s)
-		   (b->p (string->utf8 (string-append s "\x0;"))))
-		 (define (convert-arg type arg)
-		   (case type
-		     ((void*)
-		      (cond ((string? arg) (s->p arg))
-			    ((bytevector? arg) (b->p arg))
-			    (else (pointer->integer arg))))
-		     (else arg)))
 		 (define (object->foreign-type arg)
 		   (cond ((number? arg)
 			  (cond ((and (exact? arg) (integer? arg))
 				 (let ((n (bitwise-length arg)))
-				   (cond ((<= n 32) 'int32_t)
-					 ((<= n 64) 'int64_t)
+				   (cond ((<= n 32) 'integer-32)
+					 ((<= n 64) 'integer-64)
 					 (else (assertion-violation 'name
 						 "Too big integer" arg)))))
 				;; sorry we don't know if this is
@@ -273,7 +271,8 @@
 			 (else
 			  (assertion-violation 'name
 			   "Unsuported Scheme object" arg))))
-		 (let ((required-types (drop-right '(args ...) 1)))
+		 (let ((required-types (map pffi-type->foreign-type
+					    (drop-right '(args ...) 1))))
 		   (lambda arg*
 		     (let* ((rest (drop arg* (length required-types)))
 			    (rest-types (map object->foreign-type rest))
@@ -283,9 +282,11 @@
 			    ;; special marker for variadic argument.
 			    ;; See:
 			    ;;  https://github.com/ktakashi/r6rs-pffi/issues/5
-			    (fp (eval `(foreign-procedure conv ... name-str
+			    (fp (eval `(foreign-procedure
+					(__varargs_after ,(length required-types))
+					conv ... name-str
 					(,@required-types . ,rest-types)
-					ret)
+					,(pffi-type->foreign-type 'ret))
 				      (environment '(chezscheme))))
 			    (r (apply fp (map convert-arg
 					      (append required-types rest-types)
@@ -294,16 +295,6 @@
 			 ((void*) (integer->pointer r))
 			 (else r))))))
 	     #'(let ()
-		 (define (b->p b) (pointer->integer (bytevector->pointer b)))
-		 (define (s->p s)
-		   (b->p (string->utf8 (string-append s "\x0;"))))
-		 (define (convert-arg type arg)
-		   (case (pffi-type->foreign-type type)
-		     ((void*)
-		      (cond ((string? arg) (s->p arg))
-			    ((bytevector? arg) (b->p arg))
-			    (else (pointer->integer arg))))
-		     (else arg)))
 		 (let ((fp (foreign-procedure conv ... name-str (types ...) ret))
 		       (arg-types '(args ...)))
 		   (lambda arg*

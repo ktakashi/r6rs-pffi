@@ -68,6 +68,4 @@
        (registered-alias? (syntax->datum #'t))
        #''t)
       ((_ t) #'t))))
-    
-
 )
