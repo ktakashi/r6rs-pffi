@@ -41,7 +41,8 @@
             define-foreign-union)
     (import (rnrs)
             (pffi compat)
-            (only (pffi misc) take drop split-at check-primitive))
+            (for (only (pffi misc) take drop split-at check-primitive)
+		 run expand))
 
 ;; use fields, protocol and parent from (rnrs)
 ;; e.g.

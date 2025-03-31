@@ -125,7 +125,6 @@
 			 (read racket:read))
 		 run expand)
 	    (pffi misc)
-	    ;; (pffi helper)
             (only (srfi :13) string-index-right))
 
 (define char           _sint8)

@@ -83,12 +83,6 @@ if it's allowed.
 
 Defines a type alias. Similar mechanism as `typedef` in C.
 
-Implementation note:
-For Chez Scheme, this registeres the given _name_ into a global storage.
-Also, this form can only be used different library from the foreign
-procedure bindings, otherwise the macro expander would complain.
-
-
 ### Foreign types
 
 Implementations may have own bindings for foreign types. This layer absorbs
