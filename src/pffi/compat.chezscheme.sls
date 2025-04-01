@@ -134,7 +134,7 @@
                   foreign-procedure
                   ftype-pointer-address ftype-sizeof
                   foreign-entry foreign-sizeof foreign-ref foreign-set!
-                  make-parameter
+                  make-parameter make-weak-hashtable
 		  collect
 		  make-guardian collect-request-handler))
 
@@ -252,6 +252,7 @@
 	 ;; Minor optimisation not to have big code
 	 (if (syntax->datum #'varargs?)
 	     #'(let ()
+		 (define procedure-cache (make-weak-hashtable equal-hash equal?))
 		 (define (object->foreign-type arg)
 		   (cond ((number? arg)
 			  (cond ((and (exact? arg) (integer? arg))
@@ -271,6 +272,18 @@
 			 (else
 			  (assertion-violation 'name
 			   "Unsuported Scheme object" arg))))
+		 (define (get-procedure required-types rest-types)
+		   (define arg* `(,@required-types . ,rest-types))
+		   (cond ((hashtable-ref procedure-cache arg* #f))
+			 (else
+			  (let ((fp (eval `(foreign-procedure
+					    (__varargs_after
+					     ,(length required-types))
+					    conv ... name-str ,arg*
+					    ,(pffi-type->foreign-type 'ret))
+					  (environment '(chezscheme)))))
+			    (hashtable-set! procedure-cache arg* fp)
+			    fp))))
 		 (let ((required-types (map pffi-type->foreign-type
 					    (drop-right '(args ...) 1))))
 		   (lambda arg*
@@ -282,12 +295,7 @@
 			    ;; special marker for variadic argument.
 			    ;; See:
 			    ;;  https://github.com/ktakashi/r6rs-pffi/issues/5
-			    (fp (eval `(foreign-procedure
-					(__varargs_after ,(length required-types))
-					conv ... name-str
-					(,@required-types . ,rest-types)
-					,(pffi-type->foreign-type 'ret))
-				      (environment '(chezscheme))))
+			    (fp (get-procedure required-types rest-types))
 			    (r (apply fp (map convert-arg
 					      (append required-types rest-types)
 					      arg*))))
