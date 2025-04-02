@@ -300,6 +300,35 @@
     (test-equal "a-st-s1 (1)" 1 (a-st-s1 (a-union-st bv)))
     (test-equal "a-st-s2 (1)" 0 (a-st-s2 (a-union-st bv)))))
 
+;; Next offset computation was incorrect.
+(let ()
+  (define-foreign-struct WIN-BORDER
+    (fields (int ls)
+	    (int rs)
+	    (int ts)
+	    (int bs)
+	    (int tl)
+	    (int tr)
+	    (int bl)
+	    (int br)))
+  (define-foreign-struct WIN
+    (fields (int startx)
+	    (int starty)
+	    (int height)
+	    (int width)
+	    (WIN-BORDER border)))
+  (define c char->integer)
+
+  (test-equal (* 8 size-of-int) size-of-WIN-BORDER)
+  (test-equal (+ (* 4 size-of-int) size-of-WIN-BORDER)
+	      size-of-WIN)
+  (let ((border (make-WIN-BORDER (c #\|) (c #\|) (c #\-) (c #\-)
+				 (c #\+) (c #\+) (c #\+) (c #\+)))
+	(height 3)
+	(width 10))
+    (test-assert (make-WIN height width 0 0 border))))
+
+
 (let ()
   (define-foreign-struct a-st
     (fields (short s1)

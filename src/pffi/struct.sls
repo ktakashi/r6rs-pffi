@@ -511,7 +511,7 @@
                         (if (> ps max-size) ps max-size)
                         (+ size pad)))))))))
 
-;; FIXME I'm not sure if I'm doing correctly here but work
+;; FIXME I'm not sure if I'm doing correctly here but works
 ;;       (tests are passing...)
 (define (compute-offset descriptor field align)
   (define-syntax offset
@@ -535,7 +535,7 @@
                   (foreign-struct-descriptor-alignment (cadr f))
                   s))
            (pad (padding (cadr f) size a)))
-      (+ size pad)))
+      (values (+ s pad) (+ size pad))))
   (define parent-align (if (foreign-struct-descriptor-parent descriptor)
                            (foreign-struct-descriptor-alignment
                             (foreign-struct-descriptor-parent descriptor))
@@ -559,11 +559,11 @@
           (if (eq? field (car f))
               (if (foreign-struct-descriptor? (cadr f))
                   (offset off (foreign-struct-descriptor-alignment (cadr f)))
-                  (let ((next-size (compute-next-size size f)))
+                  (let-values (((ignore next-size) (compute-next-size size f)))
                     (- next-size (alignment f))))
-              (let ((next-size (compute-next-size size f)))
-                ;; rough next offset = current offset + next-size
-                (loop (cdr fields) next-size (+ off next-size))))))))
+              (let-values (((s next-size) (compute-next-size size f)))
+                ;; rough next offset = current offset + s
+                (loop (cdr fields) next-size (+ off s))))))))
 
 
 (define-syntax type->set!
