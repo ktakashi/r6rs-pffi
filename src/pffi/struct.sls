@@ -38,11 +38,22 @@
 
 (library (pffi struct)
     (export define-foreign-struct
-            define-foreign-union)
+            define-foreign-union
+	    fields parent protocol alignment)
     (import (rnrs)
             (pffi compat)
+	    (for (pffi struct helper) run expand)
             (for (only (pffi misc) take drop split-at check-primitive)
 		 run expand))
+
+;; descriptor for convenience
+(define-record-type generic-foreign-struct-descriptor
+  (parent <foreign-struct-descriptor>)
+  (fields alignment type-ref type-set!)
+  (protocol (lambda (n)
+              (lambda (name size alignment fields parent proto ref set)
+                ((n name size fields parent proto)
+		 alignment ref set)))))
 
 ;; use fields, protocol and parent from (rnrs)
 ;; e.g.
@@ -55,105 +66,18 @@
 ;;         (p size (bytevector->pointer (make-bytevector size)))))))
 (define-syntax define-foreign-struct
   (lambda (x)
-    (define (->ctr&pred name)
-      (let ((base (symbol->string (syntax->datum name))))
-        (list (string->symbol (string-append "make-" base))
-              (string->symbol (string-append base "?")))))
-    (define (process-clauses struct-name clauses)
-      (define sname (symbol->string (syntax->datum struct-name)))
-      (define d syntax->datum)
-      (define (process-fields ofields)
-        (define (ref name)
-          (string->symbol
-           (string-append sname "-" (symbol->string (syntax->datum name)))))
-        (define (set name)
-          (string->symbol
-           (string-append sname "-" (symbol->string (syntax->datum name))
-                          "-set!")))
-	(define (type-error name)
-	  (syntax-violation
-	   'define-foreign-struct
-	   "Type must be one of the foreign types except 'callback'"
-	   (d name)))
-        (let loop ((fields ofields) (r '()))
-          (syntax-case fields ()
-            (() (reverse r))
-            (((type name) . rest)
-	     (or (identifier? #'type) (type-error #'type))
-             (loop #'rest
-                   (cons (list (d #'type) (d  #'name)
-                               (ref #'name) (set #'name)) r)))
-            (((type name ref) . rest)
-	     (or (identifier? #'type) (type-error #'type))
-             (loop #'rest
-                   (cons (list (d #'type) (d #'name) (d #'ref)
-                               (set #'name)) r)))
-            (((type name ref set) . rest)
-	     (or (identifier? #'type) (type-error #'type))
-             (loop #'rest
-                   (cons (list (d #'type) (d #'name) (d #'ref) (d #'set))
-                         r)))
-	    (_ (syntax-violation 'define-foreign-struct
-				 "Invalid field declaration"
-				 (d ofields)
-				 (d (car fields)))))))
-      (let loop ((clauses clauses) (fs #f) (par #f) (proto #f) (align #f))
-        (syntax-case clauses (fields parent protocol)
-          (() (list fs par proto align))
-          (((fields defs ...) . rest)
-           (or (not fs)
-               (syntax-violation 'define-foreign-struct
-                                 "only one fields clause allowed"
-                                 x clauses))
-           (loop #'rest (process-fields #'(defs ...)) par proto align))
-          (((parent p) . rest)
-           (or (not par)
-               (syntax-violation 'define-foreign-struct
-                                 "only one parent clause allowed"
-                                 x clauses))
-           (loop #'rest fs (d #'p) proto align))
-          (((protocol p) . rest)
-           (or (not proto)
-               (syntax-violation 'define-foreign-struct
-                                 "only one protocol clause allowed"
-                                 x clauses))
-           (loop #'rest fs par (d #'p) align))
-          (((alignment a) . rest)
-           (or (not align)
-               (syntax-violation 'define-foreign-struct
-                                 "only one alignment clause allowed"
-                                 x clauses))
-	   (if (identifier? #'a)
-	       (loop #'rest fs par proto #'a)
-	       ;; Apparently, PLT R6RS creates syntax object against
-	       ;; number / string
-	       (loop #'rest fs par proto (syntax->datum #'a))))
-          (_ (syntax-violation 'define-foreign-struct
-                               "invalid define-foreign-struct" x clauses)))))
-
-    (define (->sizeof type)
-      (string->symbol (string-append "size-of-"
-                                     (symbol->string (syntax->datum type)))))
-    (define (->sizeofs types)
-      (let loop ((types types) (r '()))
-        (syntax-case types ()
-          (() (reverse r))
-          ((a . d) (loop #'d (cons (list (syntax->datum #'a)
-                                         (->sizeof #'a)) r))))))
-
+    (define process-clauses (make-process-clauses x 'define-foreign-struct))
     (syntax-case x ()
       ((k (name ctr pred) specs ...)
        (and (identifier? #'name) (identifier? #'ctr) (identifier? #'pred))
        ;; collect fields, parent and protocol
        (with-syntax (((((type field ref set) ...) parent protocol align)
-                      (datum->syntax #'k (process-clauses #'name
-                                                          #'(specs ...))))
-                     (sizeof (datum->syntax #'k (->sizeof #'name)))
+                      (process-clauses #'k #'name #'(specs ...)))
+                     (sizeof (->sizeof #'k #'name))
                      ;; To avoid Guile's bug.
                      ;; this isn't needed if macro expander works *properly*
                      ((this-protocol) (generate-temporaries '(this-protocol))))
-         (with-syntax ((((types sizeofs) ...)
-                        (datum->syntax #'k (->sizeofs #'(type ...)))))
+         (with-syntax ((((types sizeofs) ...) (->sizeofs #'k #'(type ...))))
            #'(begin
                (define alignment-check
                  (unless (or (not align) (memv align '(1 2 4 8 16)))
@@ -165,15 +89,18 @@
                                (list (cons (check-primitive type) sizeofs) ...)
                                align))
                (define this-protocol protocol)
-               (define name
-                 (make-foreign-struct-descriptor
+               (define (pred o)
+                 (and (bytevector? o)
+                      (>= (bytevector-length o) sizeof)))
+	       (define name
+                 (make-generic-foreign-struct-descriptor
                   'name
                   sizeof
                   (struct-alignment
 		   (list (cons (check-primitive type) sizeofs) ...))
                   (list (cons* 'field (check-primitive types) sizeofs) ...)
                   parent
-                  (if this-protocol #t #f)
+                  this-protocol
                   ;; type-ref
                   (lambda (o offset)
                     (let ((bv (make-bytevector sizeof)))
@@ -182,12 +109,6 @@
                   ;; type-set!
                   (lambda (o offset v)
                     (bytevector-copy! v 0 o offset sizeof))))
-
-               ;; TODO sub struct
-               (define (pred o)
-                 (and (bytevector? o)
-                      (>= (bytevector-length o) sizeof)))
-               ;; TODO handle protocol
                (define ctr (make-constructor name this-protocol))
                (define ref
                  (let ((acc (type->ref type))
@@ -196,123 +117,57 @@
                ...
                (define set
                  (let ((acc (type->set! type))
-                       (offset (compute-offset name 'field align)))
+		       (offset (compute-offset name 'field align)))
                    (lambda (o v) (acc o offset v))))
                ...
-               ;; ugly...
-               (define dummy
-                 (begin
-                   (foreign-struct-descriptor-getters-set! name (list ref ...))
-                   (foreign-struct-descriptor-setters-set! name (list set ...))
-                   (foreign-struct-descriptor-ctr-set! name ctr)
-                   (foreign-struct-descriptor-protocol-set! name
-                    (or this-protocol (default-protocol name)))))
-               )
-           )))
+	       (define dummy
+		 (begin
+		   (foreign-struct-descriptor-ctr-set! name ctr)
+		   (foreign-struct-descriptor-getters-set! name (list ref ...))
+		   (foreign-struct-descriptor-setters-set! name (list set ...))))
+           ))))
       ((k name specs ...)
        (identifier? #'name)
-       (with-syntax (((ctr pred) (datum->syntax #'k (->ctr&pred #'name))))
+       (with-syntax (((ctr pred) (->ctr&pred #'k #'name)))
          #'(k (name ctr pred) specs ...))))))
 
 (define-syntax define-foreign-union
   (lambda (x)
-    (define (->ctr&pred name)
-      (let ((base (symbol->string (syntax->datum name))))
-        (list (string->symbol (string-append "make-" base))
-              (string->symbol (string-append base "?")))))
-    (define (process-clauses struct-name clauses)
-      (define sname (symbol->string (syntax->datum struct-name)))
-      (define d syntax->datum)
-      (define (process-fields fields)
-        (define (ref name)
-          (string->symbol
-           (string-append sname "-" (symbol->string (syntax->datum name)))))
-        (define (set name)
-          (string->symbol
-           (string-append sname "-" (symbol->string (syntax->datum name))
-                          "-set!")))
-	(define (type-error name)
-	  (syntax-violation
-	   'define-foreign-struct
-	   "Type must be one of the foreign types except 'callback'"
-	   (d name)))
-        (let loop ((fields fields) (r '()))
-          (syntax-case fields ()
-            (() (reverse r))
-            (((type name) . rest)
-	     (or (identifier? #'type) (type-error #'type))
-             (loop #'rest
-                   (cons (list (d #'type) (d  #'name)
-                               (ref #'name) (set #'name)) r)))
-            (((type name ref) . rest)
-	     (or (identifier? #'type) (type-error #'type))
-             (loop #'rest
-                   (cons (list (d #'type) (d #'name) (d #'ref)
-                               (set #'name)) r)))
-            (((type name ref set) . rest)
-	     (or (identifier? #'type) (type-error #'type))
-             (loop #'rest
-                   (cons (list (d #'type) (d #'name) (d #'ref) (d #'set))
-                         r)))
-	    (_ (syntax-violation 'define-foreign-struct
-				 "invalid define-foreign-struct" x clauses)))))
-      (let loop ((clauses clauses) (fs #f) (proto #f))
-        (syntax-case clauses (fields protocol)
-          (() (list fs proto))
-          (((fields defs ...) . rest)
-           (or (not fs)
-               (syntax-violation 'define-foreign-struct
-                                 "only one fields clause allowed"
-                                 x clauses))
-           (loop #'rest (process-fields #'(defs ...)) proto))
-          (((protocol p) . rest)
-           (or (not proto)
-               (syntax-violation 'define-foreign-struct
-                                 "only one protocol clause allowed"
-                                 x clauses))
-           (loop #'rest fs (d #'p)))
-          (_ (syntax-violation 'define-foreign-struct
-                               "invalid define-foreign-struct" x clauses)))))
-
-    (define (->sizeof type)
-      (string->symbol (string-append "size-of-"
-                                     (symbol->string (syntax->datum type)))))
-    (define (->sizeofs types)
-      (let loop ((types types) (r '()))
-        (syntax-case types ()
-          (() (reverse r))
-          ((a . d) (loop #'d (cons (list (syntax->datum #'a)
-                                         (->sizeof #'a)) r))))))
-
+    (define process-clauses (make-process-clauses x 'define-foreign-union))
     (syntax-case x ()
       ((k (name ctr pred) specs ...)
        (and (identifier? #'name) (identifier? #'ctr) (identifier? #'pred))
        ;; collect fields, parent and protocol
-       (with-syntax (((((type field ref set) ...) protocol)
-                      (datum->syntax #'k (process-clauses #'name
-                                                          #'(specs ...))))
-                     (sizeof (datum->syntax #'k (->sizeof #'name)))
+       (with-syntax (((((type field ref set) ...) parent protocol alignment)
+		      (process-clauses #'k #'name #'(specs ...)))
+                     (sizeof (->sizeof #'k #'name))
                      ;; To avoid Guile's bug.
                      ;; this isn't needed if macro expander works *properly*
                      ((this-protocol) (generate-temporaries '(this-protocol))))
-         (with-syntax ((((types sizeofs) ...)
-                        (datum->syntax #'k (->sizeofs #'(type ...)))))
+	 (when #'parent
+	   (syntax-violation 'define-foreign-union "Union can't have parent" x))
+	 (when #'alignment
+	   (syntax-violation 'define-foreign-union "Union can't have alignment" x))
+         (with-syntax ((((types sizeofs) ...) (->sizeofs #'k #'(type ...))))
            #'(begin
                (define sizeof
                  ;; the same as alignment :)
                  (struct-alignment
 		  (list (cons (check-primitive type) sizeofs) ...)))
                (define this-protocol protocol)
-               (define name
-                 (make-foreign-struct-descriptor
+               ;; sub struct
+               (define (pred o)
+                 (and (bytevector? o)
+                      (>= (bytevector-length o) sizeof)))
+	       (define name
+                 (make-generic-foreign-struct-descriptor
                   'name
                   sizeof
                   (struct-alignment
 		   (list (cons (check-primitive type) sizeofs) ...))
-                  ;; only one field so dummy
-                  (list (cons* 'dummy 'name sizeof))
-                  #f
-                  (if this-protocol #t #f)
+                  (list (cons* 'field (check-primitive types) sizeofs) ...)
+                  parent
+                  this-protocol
                   ;; type-ref
                   (lambda (o offset)
                     (let ((bv (make-bytevector sizeof)))
@@ -321,10 +176,6 @@
                   ;; type-set!
                   (lambda (o offset v)
                     (bytevector-copy! v 0 o offset sizeof))))
-               ;; sub struct
-               (define (pred o)
-                 (and (bytevector? o)
-                      (>= (bytevector-length o) sizeof)))
                (define ctr
                  (let ()
                    (define fields '(field ...))
@@ -357,118 +208,22 @@
                  (let ((acc (type->set! type)))
                    (lambda (o v) (acc o 0 v))))
                ...
-               ;; ugly...
-               (define dummy
-                 (begin
-                   (foreign-struct-descriptor-getters-set! name (list ref ...))
-                   (foreign-struct-descriptor-setters-set! name (list set ...))
-                   (foreign-struct-descriptor-ctr-set! name ctr)
-                   (foreign-struct-descriptor-protocol-set! name
-                    (or this-protocol (default-protocol name)))))
+	       (define dummy
+		 (begin
+		   (foreign-struct-descriptor-ctr-set! name ctr)
+		   (foreign-struct-descriptor-getters-set! name (list ref ...))
+		   (foreign-struct-descriptor-setters-set! name (list set ...))))
                )
            )))
       ((k name specs ...)
        (identifier? #'name)
-       (with-syntax (((ctr pred) (datum->syntax #'k (->ctr&pred #'name))))
+       (with-syntax (((ctr pred) (->ctr&pred #'k #'name)))
          #'(k (name ctr pred) specs ...))))))
-
-
-(define (total-field-count desc)
-  (let loop ((desc desc) (r 0))
-    (if desc
-        (loop (foreign-struct-descriptor-parent desc)
-              (+ (length (foreign-struct-descriptor-fields desc)) r))
-        r)))
-
-(define (make-struct desc field-values)
-  (define (set-parent-fields desc bv field-values)
-    (define (->ordered-paretns desc)
-      (let loop ((p (foreign-struct-descriptor-parent desc)) (r '()))
-        (if p
-            (loop (foreign-struct-descriptor-parent p) (cons p r))
-            (reverse r))))
-    (let loop ((parents (->ordered-paretns desc))
-               (field-values field-values))
-      (if (null? parents)
-          field-values
-          (let* ((setters (foreign-struct-descriptor-setters (car parents)))
-                 (len (length setters)))
-            (for-each (lambda (set arg) (set bv arg))
-                      setters (take field-values len))
-            (loop (cdr parents) (drop field-values len))))))
-  (let ((setters (foreign-struct-descriptor-setters desc))
-        (bv (make-bytevector (foreign-struct-descriptor-size desc))))
-    (let ((field-values (set-parent-fields desc bv field-values)))
-      (for-each (lambda (set arg) (set bv arg)) setters field-values)
-      bv)))
-
-(define (make-simple-conser protocol desc argc)
-  (protocol
-   (lambda field-values
-     (if (= (length field-values) argc)
-         (make-struct desc field-values)
-         (assertion-violation "struct constructor"
-                              "wrong number of arguments"
-                              field-values)))))
-
-(define (make-nested-conser protocol odesc argc)
-  (protocol
-   ((let loop ((desc odesc))
-      (cond ((foreign-struct-descriptor-parent desc)
-             => (lambda (parent)
-                  (lambda extra-field-values
-                    (lambda protocol-args
-                      (lambda this-field-values
-                        (apply ((foreign-struct-descriptor-protocol parent)
-                                (apply (loop parent)
-                                       (append this-field-values
-                                               extra-field-values)))
-                               protocol-args))))))
-            (else
-             (lambda extra-field-values
-               (lambda this-field-values
-                 (let ((field-values (append this-field-values
-                                             extra-field-values)))
-                   (if (= (length field-values) argc)
-                       (make-struct odesc field-values)
-                       (assertion-violation "struct constructor"
-                                            "wrong number of arguments"
-                                            field-values)))))))))))
-
-(define (default-protocol desc)
-  (let ((parent (foreign-struct-descriptor-parent desc)))
-    (if parent
-        (let ((parent-field-count (total-field-count parent)))
-          (lambda (p)
-            (lambda field-values
-              (let-values (((parent-field-values this-field-values)
-                            (split-at field-values parent-field-count)))
-                (let ((n (apply p parent-field-values)))
-                  (apply n this-field-values))))))
-        (lambda (p)
-          (lambda field-values
-            (apply p field-values))))))
-
-;; TODO implement it properly...
-(define (make-constructor desc protocol)
-  (let ((parent? (foreign-struct-descriptor-parent desc))
-        (protocol (or protocol (default-protocol desc))))
-    (if parent?
-        ;; check parent protocol
-        (begin
-          (when (and (foreign-struct-descriptor-has-protocol? parent?)
-                     (not (foreign-struct-descriptor-has-protocol? desc)))
-            (assertion-violation 'make-constructor
-                                 "parent has custom protocol" desc))
-          (make-nested-conser protocol desc
-                              (total-field-count desc)))
-        (make-simple-conser protocol desc
-                            (length (foreign-struct-descriptor-fields desc))))))
 
 (define (struct-alignment lis)
   (apply max (map (lambda (l)
                     (if (foreign-struct-descriptor? (car l))
-                        (foreign-struct-descriptor-alignment (car l))
+                        (generic-foreign-struct-descriptor-alignment (car l))
                         (cdr l))) lis)))
 
 ;; ref
@@ -482,7 +237,7 @@
            (bitwise-and (- o) (- a 1))))))
 
   (let ((parent-size (if parent (foreign-struct-descriptor-size parent) 0))
-        (align (if parent (foreign-struct-descriptor-alignment parent) 0)))
+        (align (if parent (generic-foreign-struct-descriptor-alignment parent) 0)))
     ;; assume primitive types have the same alignment as its size
     ;; (according to the Wikipedia page, linix may have different value
     ;;  for double but never seen it)
@@ -496,7 +251,7 @@
             (bitwise-and (+ size m) (bitwise-not m)))
           (let ((s (car sizes)))
             (if (foreign-struct-descriptor? (car s))
-                (let* ((sa (foreign-struct-descriptor-alignment (car s)))
+                (let* ((sa (generic-foreign-struct-descriptor-alignment (car s)))
                        (ss (cdr s))
                        (size (+ size ss))
                        (pad (padding size sa)))
@@ -532,17 +287,17 @@
     (let* ((s (cddr f))
            (size (+ size s))
            (a (if (foreign-struct-descriptor? (cadr f))
-                  (foreign-struct-descriptor-alignment (cadr f))
+                  (generic-foreign-struct-descriptor-alignment (cadr f))
                   s))
            (pad (padding (cadr f) size a)))
       (values (+ s pad) (+ size pad))))
   (define parent-align (if (foreign-struct-descriptor-parent descriptor)
-                           (foreign-struct-descriptor-alignment
+                           (generic-foreign-struct-descriptor-alignment
                             (foreign-struct-descriptor-parent descriptor))
                            0))
   (define (alignment field)
     (if (foreign-struct-descriptor? (cadr field))
-        (foreign-struct-descriptor-alignment (cadr field))
+        (generic-foreign-struct-descriptor-alignment (cadr field))
         (cddr field)))
 
   (let loop ((fields (foreign-struct-descriptor-fields descriptor))
@@ -558,7 +313,8 @@
         (let ((f (car fields)))
           (if (eq? field (car f))
               (if (foreign-struct-descriptor? (cadr f))
-                  (offset off (foreign-struct-descriptor-alignment (cadr f)))
+                  (offset off (generic-foreign-struct-descriptor-alignment
+			       (cadr f)))
                   (let-values (((ignore next-size) (compute-next-size size f)))
                     (- next-size (alignment f))))
               (let-values (((s next-size) (compute-next-size size f)))
@@ -579,7 +335,7 @@
             ;; We need syntax context of the given type,
             ;; so use with-syntax here to keep it.
             (with-syntax ((t type))
-              #'(foreign-struct-descriptor-type-set! t)))))
+              #'(generic-foreign-struct-descriptor-type-set! t)))))
     (syntax-case x ()
       ((k type)
        (->set! #'k #'type)))))
@@ -596,28 +352,9 @@
             ;; We need syntax context of the given type,
             ;; so use with-syntax here to keep it.
             (with-syntax ((t type))
-              #'(foreign-struct-descriptor-type-ref t)))))
+              #'(generic-foreign-struct-descriptor-type-ref t)))))
     (syntax-case x ()
       ((k type) (->ref #'k #'type)))))
-
-;; descriptor for convenience
-(define-record-type foreign-struct-descriptor
-  (fields name                          ; for debug
-          size
-          alignment
-          fields
-          parent
-          ;; these will be set after the construction...
-          (mutable getters)
-          (mutable setters)
-          (mutable protocol)
-          has-protocol?
-          (mutable ctr)
-          type-ref
-          type-set!)
-  (protocol (lambda (n)
-              (lambda (nm s a f p p? ref set)
-                (n nm s a f p #f #f #f p? #f ref set)))))
 
 (define char-ref           bytevector-s8-ref)
 (define unsigned-char-ref  bytevector-u8-ref)

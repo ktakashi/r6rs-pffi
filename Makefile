@@ -37,6 +37,7 @@ prepare-racket:
 	$(RACKET) --force --install src/pffi/procedure.sls
 	$(RACKET) --force --install src/pffi/variable.sls
 	$(RACKET) --force --install src/pffi/pointers.sls
+	$(RACKET) --force --install src/pffi/struct/helper.sls
 	$(RACKET) --force --install src/pffi/struct.sls
 	$(RACKET) --force --install src/pffi.sls
 

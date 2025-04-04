@@ -1,2 +1,5 @@
 *.so
 *.log
+tests/functions
+tests/lib/srfi/:64
+tests/lib/srfi/:64.sls

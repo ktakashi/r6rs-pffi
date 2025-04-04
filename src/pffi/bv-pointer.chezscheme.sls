@@ -30,18 +30,20 @@
 
 #!r6rs
 (library (pffi bv-pointer)
-    (export bytevector->pointer)
+    (export (rename (object->reference-address bytevector->pointer)))
     (import (rnrs)
             (only (chezscheme)
-                  machine-type foreign-procedure load-shared-object))
+		  object->reference-address
+                  ;; machine-type foreign-procedure load-shared-object
+		  ))
 
-(define dummy
-  (case (machine-type)
-    ((ta6le a6le i3le ti3le arm32le arm64le tarm64le ppc32le) (load-shared-object "libc.so.6"))
-    ((i3osx ti3osx a6osx ta6osx arm64osx tarm64osx) (load-shared-object "libc.dylib"))
-    ((ta6nt a6nt i3nt ti3nt) (load-shared-object "msvcrt.dll"))
-    (else (load-shared-object "libc.so"))))
+;; (define dummy
+;;   (case (machine-type)
+;;     ((ta6le a6le i3le ti3le arm32le arm64le tarm64le ppc32le) (load-shared-object "libc.so.6"))
+;;     ((i3osx ti3osx a6osx ta6osx arm64osx tarm64osx) (load-shared-object "libc.dylib"))
+;;     ((ta6nt a6nt i3nt ti3nt) (load-shared-object "msvcrt.dll"))
+;;     (else (load-shared-object "libc.so"))))
 
-(define f (foreign-procedure "memmove" (u8* u8* size_t) uptr))
-(define (bytevector->pointer bv) (f bv bv 0))
+;; (define f (foreign-procedure "memmove" (u8* u8* size_t) uptr))
+;; (define (bytevector->pointer bv) (f bv bv 0))
 )
