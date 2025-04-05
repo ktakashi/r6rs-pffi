@@ -48,14 +48,13 @@
 	    foreign-struct-descriptor-setters-set!
 
 	    make-constructor)
-    (import (rnrs)
+    (import (for (rnrs) run expand (meta -1))
 	    (only (pffi misc) take drop split-at))
 
 (define-syntax alignment (syntax-rules ()))
 
 (define (make-process-clauses x who)
   (define (process-fields k type-name ofields)
-    (define sname (syntax->datum type-name))
     (define (type-error name)
       (syntax-violation who
 			"Type must be one of the foreign types except 'callback'"
@@ -65,15 +64,15 @@
         (() (reverse r))
         (((type name) . rest)
 	 (or (identifier? #'type) (type-error #'type))
-	 (with-syntax (((ref set) (->ref&set! type-name sname #'name)))
+	 (with-syntax (((ref set) (->ref&set! k type-name #'name)))
            (loop #'rest (cons #'(type name ref set) r))))
         (((type name ref) . rest)
 	 (or (identifier? #'type) (type-error #'type))
-	 (with-syntax (((ignore set) (->ref&set! type-name sname #'name)))
+	 (with-syntax (((ignore set) (->ref&set! k type-name #'name)))
            (loop #'rest (cons #'(type name ref set) r))))
         (((type name ref set) . rest)
 	 (or (identifier? #'type) (type-error #'type))
-	 (loop #'rest (cons #'((name type) ref set) r)))
+	 (loop #'rest (cons #'(type name ref set) r)))
 	(_ (syntax-violation who "Invalid field declaration" x (car fields))))))
   (lambda (k name clauses)
     (let loop ((clauses clauses) (fs #f) (par #f) (proto #f) (align #f))
