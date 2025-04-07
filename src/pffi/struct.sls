@@ -46,15 +46,6 @@
             (for (only (pffi misc) take drop split-at check-primitive)
 		 run expand))
 
-;; descriptor for convenience
-(define-record-type generic-foreign-struct-descriptor
-  (parent <foreign-struct-descriptor>)
-  (fields alignment type-ref type-set!)
-  (protocol (lambda (n)
-              (lambda (name size alignment fields parent proto ref set)
-                ((n name size fields parent proto)
-		 alignment ref set)))))
-
 ;; use fields, protocol and parent from (rnrs)
 ;; e.g.
 ;; (define-foreign-struct foreign-vector
@@ -66,7 +57,9 @@
 ;;         (p size (bytevector->pointer (make-bytevector size)))))))
 (define-syntax define-foreign-struct
   (lambda (x)
-    (define process-clauses (make-process-clauses x 'define-foreign-struct))
+    (define process-clauses
+      (make-process-clauses x 'define-foreign-struct
+			    (fields parent protocol alginment)))
     (syntax-case x ()
       ((k (name ctr pred) specs ...)
        (and (identifier? #'name) (identifier? #'ctr) (identifier? #'pred))
@@ -133,7 +126,9 @@
 
 (define-syntax define-foreign-union
   (lambda (x)
-    (define process-clauses (make-process-clauses x 'define-foreign-union))
+    (define process-clauses
+      (make-process-clauses x 'define-foreign-union
+			    (fields parent protocol alginment)))
     (syntax-case x ()
       ((k (name ctr pred) specs ...)
        (and (identifier? #'name) (identifier? #'ctr) (identifier? #'pred))

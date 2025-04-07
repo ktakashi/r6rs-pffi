@@ -47,62 +47,72 @@
 	    foreign-struct-descriptor-setters
 	    foreign-struct-descriptor-setters-set!
 
+	    make-generic-foreign-struct-descriptor
+	    generic-foreign-struct-descriptor-alignment
+	    generic-foreign-struct-descriptor-type-ref
+	    generic-foreign-struct-descriptor-type-set!
+	    
 	    make-constructor)
     (import (for (rnrs) run expand (meta -1))
 	    (only (pffi misc) take drop split-at))
 
 (define-syntax alignment (syntax-rules ()))
 
-(define (make-process-clauses x who)
-  (define (process-fields k type-name ofields)
-    (define (type-error name)
-      (syntax-violation who
-			"Type must be one of the foreign types except 'callback'"
-			x name))
-    (let loop ((fields ofields) (r '()))
-      (syntax-case fields ()
-        (() (reverse r))
-        (((type name) . rest)
-	 (or (identifier? #'type) (type-error #'type))
-	 (with-syntax (((ref set) (->ref&set! k type-name #'name)))
-           (loop #'rest (cons #'(type name ref set) r))))
-        (((type name ref) . rest)
-	 (or (identifier? #'type) (type-error #'type))
-	 (with-syntax (((ignore set) (->ref&set! k type-name #'name)))
-           (loop #'rest (cons #'(type name ref set) r))))
-        (((type name ref set) . rest)
-	 (or (identifier? #'type) (type-error #'type))
-	 (loop #'rest (cons #'(type name ref set) r)))
-	(_ (syntax-violation who "Invalid field declaration" x (car fields))))))
-  (lambda (k name clauses)
-    (let loop ((clauses clauses) (fs #f) (par #f) (proto #f) (align #f))
-      (syntax-case clauses (fields parent protocol alginment)
-	(() (list fs par proto align))
-	(((fields defs ...) . rest)
-	 (or (not fs)
-	     (syntax-violation who "only one fields clause allowed" x
-			       (car clauses)))
-	 (loop #'rest (process-fields k name #'(defs ...)) par proto align))
-	(((parent p) . rest)
-	 (or (not par)
-	     (syntax-violation who "only one parent clause allowed" x
-			       (car clauses)))
-	 (loop #'rest fs #'p proto align))
-	(((protocol p) . rest)
-	 (or (not proto)
-	     (syntax-violation who "only one protocol clause allowed" x
-			       (car clauses)))
-	 (loop #'rest fs par #'p align))
-	(((alignment a) . rest)
-	 (or (not align)
-             (syntax-violation who "only one alignment clause allowed" x
-			       (car clauses)))
-	 (if (identifier? #'a)
-	     (loop #'rest fs par proto #'a)
-	     ;; Apparently, PLT R6RS creates syntax object against
-	     ;; number / string
-	     (loop #'rest fs par proto (syntax->datum #'a))))
-	(_ (syntax-violation who "invalid clause" x (car clauses)))))))
+;; Guile doesn't understand (meta -1) so passing the required free identifiers
+;; explicitly here (i.e. fields, parent, protocol and alignment)
+(define-syntax make-process-clauses
+  (syntax-rules ()
+    ((_  x who (fields parent protocol alginment))
+     (lambda (k name clauses)
+       (define (process-fields k type-name ofields)
+	 (define (type-error name)
+	   (syntax-violation who
+	     "Type must be one of the foreign types except 'callback'" x name))
+	 (let loop ((fields ofields) (r '()))
+	   (syntax-case fields ()
+             (() (reverse r))
+             (((type name) . rest)
+	      (or (identifier? #'type) (type-error #'type))
+	      (with-syntax (((ref set) (->ref&set! k type-name #'name)))
+		(loop #'rest (cons #'(type name ref set) r))))
+             (((type name ref) . rest)
+	      (or (identifier? #'type) (type-error #'type))
+	      (with-syntax (((ignore set) (->ref&set! k type-name #'name)))
+		(loop #'rest (cons #'(type name ref set) r))))
+             (((type name ref set) . rest)
+	      (or (identifier? #'type) (type-error #'type))
+	      (loop #'rest (cons #'(type name ref set) r)))
+	     (_ (syntax-violation who "Invalid field declaration"
+				  x (car fields))))))
+       (let loop ((clauses clauses) (fs #f) (par #f) (proto #f) (align #f))
+	 (syntax-case clauses (fields parent protocol alginment)
+	   (() (list fs par proto align))
+	   (((fields defs (... ...)) . rest)
+	    (or (not fs)
+		(syntax-violation who "only one fields clause allowed" x
+				  (car clauses)))
+	    (loop #'rest
+		  (process-fields k name #'(defs (... ...))) par proto align))
+	   (((parent p) . rest)
+	    (or (not par)
+		(syntax-violation who "only one parent clause allowed" x
+				  (car clauses)))
+	    (loop #'rest fs #'p proto align))
+	   (((protocol p) . rest)
+	    (or (not proto)
+		(syntax-violation who "only one protocol clause allowed" x
+				  (car clauses)))
+	    (loop #'rest fs par #'p align))
+	   (((alignment a) . rest)
+	    (or (not align)
+		(syntax-violation who "only one alignment clause allowed" x
+				  (car clauses)))
+	    (if (identifier? #'a)
+		(loop #'rest fs par proto #'a)
+		;; Apparently, PLT R6RS creates syntax object against
+		;; number / string
+		(loop #'rest fs par proto (syntax->datum #'a))))
+	   (_ (syntax-violation who "invalid clause" x (car clauses)))))))))
 
 (define (->ctr&pred k name)
   (datum->syntax k (list (->name "make-" name "") (->name "" name "?"))))
@@ -143,6 +153,16 @@
 		  (foreign-struct-descriptor-protocol-set! n 
 		   (or protocol (default-protocol n)))
 		  n)))))
+
+;; descriptor for convenience
+;; this can be struct.sls, but Guile doesn't like it...
+(define-record-type generic-foreign-struct-descriptor
+  (parent foreign-struct-descriptor)
+  (fields alignment type-ref type-set!)
+  (protocol (lambda (n)
+              (lambda (name size alignment fields parent proto ref set)
+                ((n name size fields parent proto)
+		 alignment ref set)))))
 
 (define (total-field-count desc)
   (let loop ((desc desc) (r 0))
