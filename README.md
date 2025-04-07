@@ -3,6 +3,17 @@ R6RS Portable Foreign Function Interface
 
 PFFI is a portable foreign function interface for R6RS Scheme implementations.
 
+## Changes
+
+### version x.x.x (next release)
+
+**Breaking changes**
+
+- Using ftype for `define-foreign-struct` and `define-foreign-union` on Chez
+  This means, `alignment` keyword doesn't work on Chez.
+- Introducing `struct` keyword on struct member to distinguish primitive
+  and struct.
+
 ## Example
 
 Suppose we have the following C file and will be compiled to `libfoo.so`

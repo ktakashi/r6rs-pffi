@@ -39,7 +39,7 @@
 (library (pffi struct)
     (export define-foreign-struct
             define-foreign-union
-	    fields parent protocol alignment)
+	    fields parent protocol alignment struct)
     (import (rnrs)
             (pffi compat)
 	    (for (pffi struct helper) run expand)
@@ -60,6 +60,7 @@
     (define process-clauses
       (make-process-clauses x 'define-foreign-struct
 			    (fields parent protocol alginment)))
+    (define ->type-name (make->type-name 'define-foreign-struct (struct)))
     (syntax-case x ()
       ((k (name ctr pred) specs ...)
        (and (identifier? #'name) (identifier? #'ctr) (identifier? #'pred))
@@ -70,55 +71,56 @@
                      ;; To avoid Guile's bug.
                      ;; this isn't needed if macro expander works *properly*
                      ((this-protocol) (generate-temporaries '(this-protocol))))
-         (with-syntax ((((types sizeofs) ...) (->sizeofs #'k #'(type ...))))
-           #'(begin
-               (define alignment-check
-                 (unless (or (not align) (memv align '(1 2 4 8 16)))
-                   (assertion-violation 'define-foreign-struct
-                                        "alignment must be  1, 2, 4, 8, or 16"
-                                        align)))
-               (define sizeof
-		 (compute-size parent
-                               (list (cons (check-primitive type) sizeofs) ...)
-                               align))
-               (define this-protocol protocol)
-               (define (pred o)
-                 (and (bytevector? o)
-                      (>= (bytevector-length o) sizeof)))
-	       (define name
-                 (make-generic-foreign-struct-descriptor
-                  'name
-                  sizeof
-                  (struct-alignment
-		   (list (cons (check-primitive type) sizeofs) ...))
-                  (list (cons* 'field (check-primitive types) sizeofs) ...)
-                  parent
-                  this-protocol
-                  ;; type-ref
-                  (lambda (o offset)
-                    (let ((bv (make-bytevector sizeof)))
-                      (bytevector-copy! o offset bv 0 sizeof)
-                      bv))
-                  ;; type-set!
-                  (lambda (o offset v)
-                    (bytevector-copy! v 0 o offset sizeof))))
-               (define ctr (make-constructor name this-protocol))
-               (define ref
-                 (let ((acc (type->ref type))
-                       (offset (compute-offset name 'field align)))
-                   (lambda (o) (acc o offset))))
-               ...
-               (define set
-                 (let ((acc (type->set! type))
-		       (offset (compute-offset name 'field align)))
-                   (lambda (o v) (acc o offset v))))
-               ...
-	       (define dummy
-		 (begin
-		   (foreign-struct-descriptor-ctr-set! name ctr)
-		   (foreign-struct-descriptor-getters-set! name (list ref ...))
-		   (foreign-struct-descriptor-setters-set! name (list set ...))))
-           ))))
+	 (with-syntax (((type ...) (->type-name  #'(type ...))))
+	   (with-syntax ((((types sizeofs) ...) (->sizeofs #'k #'(type ...))))
+             #'(begin
+		 (define alignment-check
+                   (unless (or (not align) (memv align '(1 2 4 8 16)))
+                     (assertion-violation 'define-foreign-struct
+                                          "alignment must be  1, 2, 4, 8, or 16"
+                                          align)))
+		 (define sizeof
+		   (compute-size parent
+				 (list (cons (check-primitive type) sizeofs) ...)
+				 align))
+		 (define this-protocol protocol)
+		 (define (pred o)
+                   (and (bytevector? o)
+			(>= (bytevector-length o) sizeof)))
+		 (define name
+                   (make-generic-foreign-struct-descriptor
+                    'name
+                    sizeof
+                    (struct-alignment
+		     (list (cons (check-primitive type) sizeofs) ...))
+                    (list (cons* 'field (check-primitive type) sizeofs) ...)
+                    parent
+                    this-protocol
+                    ;; type-ref
+                    (lambda (o offset)
+                      (let ((bv (make-bytevector sizeof)))
+			(bytevector-copy! o offset bv 0 sizeof)
+			bv))
+                    ;; type-set!
+                    (lambda (o offset v)
+                      (bytevector-copy! v 0 o offset sizeof))))
+		 (define ctr (make-constructor name this-protocol))
+		 (define ref
+                   (let ((acc (type->ref type))
+			 (offset (compute-offset name 'field align)))
+                     (lambda (o) (acc o offset))))
+		 ...
+		 (define set
+                   (let ((acc (type->set! type))
+			 (offset (compute-offset name 'field align)))
+                     (lambda (o v) (acc o offset v))))
+		 ...
+		 (define dummy
+		   (begin
+		     (foreign-struct-descriptor-ctr-set! name ctr)
+		     (foreign-struct-descriptor-getters-set! name (list ref ...))
+		     (foreign-struct-descriptor-setters-set! name (list set ...))))
+		 )))))
       ((k name specs ...)
        (identifier? #'name)
        (with-syntax (((ctr pred) (->ctr&pred #'k #'name)))
@@ -129,6 +131,7 @@
     (define process-clauses
       (make-process-clauses x 'define-foreign-union
 			    (fields parent protocol alginment)))
+    (define ->type-name (make->type-name 'define-foreign-union (struct)))
     (syntax-case x ()
       ((k (name ctr pred) specs ...)
        (and (identifier? #'name) (identifier? #'ctr) (identifier? #'pred))
@@ -143,72 +146,50 @@
 	   (syntax-violation 'define-foreign-union "Union can't have parent" x))
 	 (when #'alignment
 	   (syntax-violation 'define-foreign-union "Union can't have alignment" x))
-         (with-syntax ((((types sizeofs) ...) (->sizeofs #'k #'(type ...))))
-           #'(begin
-               (define sizeof
-                 ;; the same as alignment :)
-                 (struct-alignment
-		  (list (cons (check-primitive type) sizeofs) ...)))
-               (define this-protocol protocol)
-               ;; sub struct
-               (define (pred o)
-                 (and (bytevector? o)
-                      (>= (bytevector-length o) sizeof)))
-	       (define name
-                 (make-generic-foreign-struct-descriptor
-                  'name
-                  sizeof
-                  (struct-alignment
-		   (list (cons (check-primitive type) sizeofs) ...))
-                  (list (cons* 'field (check-primitive types) sizeofs) ...)
-                  parent
-                  this-protocol
-                  ;; type-ref
-                  (lambda (o offset)
-                    (let ((bv (make-bytevector sizeof)))
-                      (bytevector-copy! o offset bv 0 sizeof)
-                      bv))
-                  ;; type-set!
-                  (lambda (o offset v)
-                    (bytevector-copy! v 0 o offset sizeof))))
-               (define ctr
-                 (let ()
-                   (define fields '(field ...))
-                   (define (custom-ctr . field&value)
-                     (define f
-                       (and (not (null? field&value)) (car field&value)))
-                     (define v
-                       (and (not (null? field&value))
-                            (not (null? (cdr field&value)))
-                            (cadr field&value)))
-                     (define setters
-                       (foreign-struct-descriptor-setters name))
-                     (let ((r (make-bytevector sizeof 0)))
-                       ;; a bit inefficient...
-                       (when (and f v)
-                         (do ((i 0 (+ i 1)) (f* fields (cdr f*)))
-                             ((or (null? f*) (eq? (car f*) f))
-                              (unless (null? f*)
-                                (let ((s (list-ref setters i)))
-                                  (s r v))))))
-                       r))
-                   (if this-protocol
-                       (this-protocol custom-ctr)
-                       (lambda () (make-bytevector sizeof 0)))))
-               (define ref
-                 (let ((acc (type->ref type)))
-                   (lambda (o) (acc o 0))))
-               ...
-               (define set
-                 (let ((acc (type->set! type)))
-                   (lambda (o v) (acc o 0 v))))
-               ...
-	       (define dummy
-		 (begin
-		   (foreign-struct-descriptor-ctr-set! name ctr)
-		   (foreign-struct-descriptor-getters-set! name (list ref ...))
-		   (foreign-struct-descriptor-setters-set! name (list set ...))))
-               )
+	 (with-syntax (((type ...) (->type-name  #'(type ...))))
+           (with-syntax ((((types sizeofs) ...) (->sizeofs #'k #'(type ...))))
+             #'(begin
+		 (define sizeof
+                   ;; the same as alignment :)
+                   (struct-alignment
+		    (list (cons (check-primitive type) sizeofs) ...)))
+		 (define this-protocol protocol)
+		 ;; sub struct
+		 (define (pred o)
+                   (and (bytevector? o)
+			(>= (bytevector-length o) sizeof)))
+		 (define name
+                   (make-generic-foreign-struct-descriptor
+                    'name
+                    sizeof
+                    (struct-alignment
+		     (list (cons (check-primitive type) sizeofs) ...))
+                    (list (cons* 'field (check-primitive types) sizeofs) ...)
+                    parent
+                    this-protocol
+                    ;; type-ref
+                    (lambda (o offset)
+                      (let ((bv (make-bytevector sizeof)))
+			(bytevector-copy! o offset bv 0 sizeof)
+			bv))
+                    ;; type-set!
+                    (lambda (o offset v)
+                      (bytevector-copy! v 0 o offset sizeof))))
+		 (define ctr (make-union-constructor name this-protocol))
+		 (define ref
+                   (let ((acc (type->ref type)))
+                     (lambda (o) (acc o 0))))
+		 ...
+		 (define set
+                   (let ((acc (type->set! type)))
+                     (lambda (o v) (acc o 0 v))))
+		 ...
+		 (define dummy
+		   (begin
+		     (foreign-struct-descriptor-ctr-set! name ctr)
+		     (foreign-struct-descriptor-getters-set! name (list ref ...))
+		     (foreign-struct-descriptor-setters-set! name (list set ...))))
+		 ))
            )))
       ((k name specs ...)
        (identifier? #'name)

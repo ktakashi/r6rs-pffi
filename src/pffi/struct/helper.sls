@@ -30,8 +30,8 @@
 #!r6rs
 (library (pffi struct helper)
     (export ->ctr&pred ->sizeof ->sizeofs
-
-	    alignment make-process-clauses
+	    make-process-clauses make->type-name
+	    alignment struct 
 
 	    (rename (foreign-struct-descriptor <foreign-struct-descriptor>))
 	    foreign-struct-descriptor? make-foreign-struct-descriptor
@@ -52,10 +52,13 @@
 	    generic-foreign-struct-descriptor-type-ref
 	    generic-foreign-struct-descriptor-type-set!
 	    
-	    make-constructor)
+	    make-constructor
+	    make-union-constructor)
     (import (for (rnrs) run expand (meta -1))
 	    (only (pffi misc) take drop split-at))
 
+;; keyword to distinguish type (for Chez)
+(define-syntax struct (syntax-rules ()))
 (define-syntax alignment (syntax-rules ()))
 
 ;; Guile doesn't understand (meta -1) so passing the required free identifiers
@@ -65,22 +68,16 @@
     ((_  x who (fields parent protocol alginment))
      (lambda (k name clauses)
        (define (process-fields k type-name ofields)
-	 (define (type-error name)
-	   (syntax-violation who
-	     "Type must be one of the foreign types except 'callback'" x name))
 	 (let loop ((fields ofields) (r '()))
 	   (syntax-case fields ()
              (() (reverse r))
              (((type name) . rest)
-	      (or (identifier? #'type) (type-error #'type))
 	      (with-syntax (((ref set) (->ref&set! k type-name #'name)))
 		(loop #'rest (cons #'(type name ref set) r))))
              (((type name ref) . rest)
-	      (or (identifier? #'type) (type-error #'type))
 	      (with-syntax (((ignore set) (->ref&set! k type-name #'name)))
 		(loop #'rest (cons #'(type name ref set) r))))
              (((type name ref set) . rest)
-	      (or (identifier? #'type) (type-error #'type))
 	      (loop #'rest (cons #'(type name ref set) r)))
 	     (_ (syntax-violation who "Invalid field declaration"
 				  x (car fields))))))
@@ -113,6 +110,21 @@
 		;; number / string
 		(loop #'rest fs par proto (syntax->datum #'a))))
 	   (_ (syntax-violation who "invalid clause" x (car clauses)))))))))
+
+(define-syntax make->type-name
+  (syntax-rules ()
+    ((_ who (struct))
+     (lambda (names)
+       (let loop ((names names) (r '()))
+	 (syntax-case names (struct)
+	   (() (reverse r))
+	   ((type rest (... ...))
+	    (identifier? #'type)
+	    (loop #'(rest (... ...)) (cons #'type r)))
+	   (((struct type) rest (... ...))
+	    (identifier? #'type)
+	    (loop #'(rest (... ...)) (cons #'type r)))
+	   (name (syntax-violation who "invalid type name" names #'name))))))))
 
 (define (->ctr&pred k name)
   (datum->syntax k (list (->name "make-" name "") (->name "" name "?"))))
@@ -188,7 +200,7 @@
                       setters (take field-values len))
             (loop (cdr parents) (drop field-values len))))))
   (let ((setters (foreign-struct-descriptor-setters desc))
-        (bv (make-bytevector (foreign-struct-descriptor-size desc))))
+        (bv (make-bytevector (foreign-struct-descriptor-size desc) 0)))
     (let ((field-values (set-parent-fields desc bv field-values)))
       (for-each (lambda (set arg) (set bv arg)) setters field-values)
       bv)))
@@ -255,5 +267,28 @@
                               (total-field-count desc)))
         (make-simple-conser protocol desc
                             (length (foreign-struct-descriptor-fields desc))))))
+
+(define (make-union-constructor desc protocol)
+  (define fields (map car (foreign-struct-descriptor-fields desc)))
+  (define sizeof (foreign-struct-descriptor-size desc))
+  (define (custom-ctr . field&value)
+    (define f (and (not (null? field&value)) (car field&value)))
+    (define v (and (not (null? field&value))
+                   (not (null? (cdr field&value)))
+                   (cadr field&value)))
+    (define setters (foreign-struct-descriptor-setters desc))
+    (let ((r (make-bytevector sizeof 0)))
+      ;; a bit inefficient...
+      (when (and f v)
+        (do ((i 0 (+ i 1)) (f* fields (cdr f*)))
+            ((or (null? f*) (eq? (car f*) f))
+             (unless (null? f*)
+               (let ((s (list-ref setters i)))
+                 (s r v))))
+	  ))
+      r))
+  (if protocol
+      (protocol custom-ctr)
+      (lambda () (make-bytevector sizeof 0))))
 
 )

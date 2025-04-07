@@ -131,7 +131,8 @@
             ;; struct
             define-foreign-struct
             define-foreign-union
-	    fields parent protocol alignment ;; for convenience
+	    fields parent protocol ;; for convenience
+	    struct alignment
             )
     (import (pffi procedure)
             (pffi variable)

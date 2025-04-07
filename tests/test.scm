@@ -161,11 +161,15 @@
     (fields (int count)
 	    (pointer elements)))
   (define-foreign-struct st-child
-    (fields (st-parent p)
+    (fields ((struct st-parent) p)
 	    (short attr)))
-  (test-assert "struct ctr" (make-st-child (make-st-parent 
+  (test-assert "struct ctr (0)" (make-st-child (make-st-parent 
 					    0 (integer->pointer 0)) 0))
   (let ((st (make-st-child (make-st-parent 0 (integer->pointer 0)) 0)))
+    (define (check-elements p)
+      (do ((i 0 (+ i 1))) ((= i 10) #t)
+	(test-equal (string-append "element (" (number->string i) ")")
+		    i (pointer-ref-c-int32 p (* i size-of-int32_t)))))
     (test-assert "predicate (child)" (st-child? st))
     (test-assert "predicate (parent)" (st-parent? st))
     (test-assert "predicate (bv)" (bytevector? st))
@@ -174,10 +178,9 @@
      (bytevector->pointer st))
     (test-equal "count" 10 (st-parent-count st))
     (test-assert "elements" (st-parent-elements st))
-    (let ((p (st-parent-elements st)))
-      (do ((i 0 (+ i 1))) ((= i 10) #t)
-	(test-equal (string-append "element (" (number->string i) ")")
-		    i (pointer-ref-c-int32 p (* i size-of-int32_t)))))
+    (check-elements (st-parent-elements st))
+    (let ((parent (st-child-p st)))
+      (check-elements (st-parent-elements parent)))
     (test-equal "attr" 5 (st-child-attr st))
     ((foreign-procedure test-lib void free_st_values (pointer))
      (bytevector->pointer st))))
@@ -190,7 +193,7 @@
   (define-foreign-struct st-child
     (fields (short attr))
     (parent st-parent))
-  (test-assert "struct ctr" (make-st-child 0 (integer->pointer 0) 0))
+  (test-assert "struct ctr (1)" (make-st-child 0 (integer->pointer 0) 0))
   (let ((st (make-st-child 0 (integer->pointer 0) 0)))
     (test-assert "predicate (child)" (st-child? st))
     (test-assert "predicate (parent)" (st-parent? st))
@@ -254,10 +257,10 @@
     (fields (char c) (short s) (pointer p)))
 
   (define-foreign-struct mixed
-    (fields (packed p) (non-packed np)))
+    (fields ((struct packed) p) ((struct non-packed) np)))
 
   (define-foreign-struct mixed-packed
-    (fields (packed p) (non-packed np))
+    (fields ((struct packed) p) ((struct non-packed) np))
     (alignment 4))
 
   (test-equal "size-of-packed" (?p 12 8) size-of-packed)
@@ -290,7 +293,7 @@
   (define-foreign-union a-union
     (fields (int i)     ;; 4
 	    (pointer p) ;; 4 or 8
-	    (a-st st)))
+	    ((struct a-st) st)))
   (test-equal "union size (1)" size-of-pointer size-of-a-union)
   (let ((bv (make-a-union)))
     (test-assert "a-union? (1)" (a-union? bv))
@@ -316,7 +319,7 @@
 	    (int starty)
 	    (int height)
 	    (int width)
-	    (WIN-BORDER border)))
+	    ((struct WIN-BORDER) border)))
   (define c char->integer)
 
   (test-equal (* 8 size-of-int) size-of-WIN-BORDER)
@@ -336,7 +339,7 @@
   (define-foreign-union a-union
     (fields (int i)     ;; 4
 	    (pointer p) ;; 4 or 8
-	    (a-st st))
+	    ((struct a-st) st))
     (protocol (lambda (p)
 		(lambda (i)
 		  (p 'i i)))))
