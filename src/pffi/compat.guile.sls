@@ -118,26 +118,46 @@
             )
     (import (rnrs)
             (only (guile) dynamic-link dynamic-pointer)
-            (system foreign)
+            (rename (system foreign)
+		    (short ffi:short)
+		    (unsigned-short ffi:unsigned-short)
+		    (int ffi:int)
+		    (unsigned-int ffi:unsigned-int)
+		    (long ffi:long)
+		    (unsigned-long ffi:unsigned-long)
+		    (float ffi:float)
+		    (double ffi:double))
+	    (pffi ffi-type-descriptor)
 	    (only (srfi :1) drop-right split-at)
             (only (srfi :13) string-index-right))
 
 (define-syntax callback
   (syntax-rules ()
     ((_ ignore ...) pointer)))
-(define char           int8)
-(define unsigned-char  uint8)
-;;(define short          int16)
-;;(define unsigned-short uint16)
-(define pointer        '*)
-(define int8_t         int8)
-(define uint8_t        uint8)
-(define int16_t        int16)
-(define uint16_t       uint16)
-(define int32_t        int32)
-(define uint32_t       uint32)
-(define int64_t        int64)
-(define uint64_t       uint64)
+(define-syntax define-ftype
+  (syntax-rules ()
+    ((_ name type)
+     (define name (make-ffi-type-descriptor 'name type (sizeof type))))))
+
+(define-ftype char           int8)
+(define-ftype unsigned-char  uint8)
+(define-ftype short          ffi:short)
+(define-ftype unsigned-short ffi:unsigned-short)
+(define-ftype int            ffi:int)
+(define-ftype unsigned-int   ffi:unsigned-int)
+(define-ftype long           ffi:long)
+(define-ftype unsigned-long  ffi:unsigned-long)
+(define-ftype float          ffi:float)
+(define-ftype double         ffi:double)
+(define-ftype int8_t         int8)
+(define-ftype uint8_t        uint8)
+(define-ftype int16_t        int16)
+(define-ftype uint16_t       uint16)
+(define-ftype int32_t        int32)
+(define-ftype uint32_t       uint32)
+(define-ftype int64_t        int64)
+(define-ftype uint64_t       uint64)
+(define-ftype pointer        '*)
 (define ___            '___) ;; dummy
 
 (define (open-shared-object path)
@@ -151,7 +171,13 @@
 
 (define (free-c-callback proc) #t) ;; for now.
 
-(define (make-c-function lib conv ret name arg-types)
+(define (->native-type type)
+  (cond ((ffi-type-descriptor? type) (ffi-type-descriptor-alias type))
+	(else type)))
+
+(define (make-c-function lib conv ffi:ret name ffi:arg-types)
+  (define arg-types (map ->native-type ffi:arg-types))
+  (define ret (->native-type ffi:ret))
   (define (s->p s) (b->p (string->utf8 (string-append s "\x0;"))))
   (define (b->p bv) (bytevector->pointer bv))
   (define ptr (lookup-shared-object lib (symbol->string name)))
@@ -200,7 +226,7 @@
 	     (apply fp (map convert-arg arg-types args*)))))))
 
 (define (make-c-callback ret args proc)
-  (procedure->pointer ret proc args))
+  (procedure->pointer (->native-type ret) proc (map ->native-type args)))
 
 (define-syntax define-deref
   (lambda (x)
@@ -287,7 +313,7 @@
     (syntax-case x ()
       ((k type)
        (with-syntax ((name (datum->syntax #'k (gen-name #'type))))
-         #'(define name (sizeof type)))))))
+         #'(define name (sizeof (ffi-type-descriptor-alias type))))))))
 
 (define-sizeof char)
 (define-sizeof short)
