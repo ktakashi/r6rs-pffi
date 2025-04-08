@@ -29,8 +29,7 @@
 ;;;
 
 (library (pffi misc)
-    (export string-map take drop split-at drop-right define-type-alias
-	    check-primitive)
+    (export string-map take drop split-at drop-right define-type-alias)
     (import (rnrs)
 	    (pffi helper)
             (only (chezscheme) reverse!))
@@ -60,12 +59,4 @@
     (cond ((zero? k) (values (reverse! r) lis))
           ((null? lis) (error 'split-at "given list it too short"))
           (else (recur (cdr lis) (- k 1) (cons (car lis) r))))))
-
-(define-syntax check-primitive
-  (lambda (x)
-    (syntax-case x ()
-      ((_ t)
-       (registered-alias? (syntax->datum #'t))
-       #''t)
-      ((_ t) #'t))))
 )

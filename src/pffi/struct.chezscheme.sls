@@ -40,6 +40,7 @@
 	    (pffi helper)
 	    (pffi struct helper)
 	    (pffi struct chez)
+	    (pffi ffi-type-descriptor)
             (only (chezscheme)
 		  define-ftype ftype-sizeof make-weak-eq-hashtable))
 
@@ -78,7 +79,7 @@
 		 (make-foreign-struct-descriptor
 		  'name
 		  sizeof
-		  '((field type . #f) ...)
+		  '((field type) ...)
 		  (hashtable-ref *type-descriptors* 'parent #f)
 		  this-protocol))
 	       (define ctr (make-constructor dummy this-protocol))
@@ -92,7 +93,9 @@
 		   (hashtable-set! *type-descriptors* 'name dummy)
 		   (foreign-struct-descriptor-ctr-set! dummy ctr)
 		   (foreign-struct-descriptor-getters-set! dummy (list ref ...))
-		   (foreign-struct-descriptor-setters-set! dummy (list set ...))))
+		   (foreign-struct-descriptor-setters-set! dummy (list set ...))
+		   (foreign-struct-descriptor-protocol-set! dummy
+		      (or this-protocol (default-protocol dummy)))))
 	       ))))
       ((k name specs ...)
        (identifier? #'name)
@@ -142,7 +145,9 @@
 		   (hashtable-set! *type-descriptors* 'name dummy)
 		   (foreign-struct-descriptor-ctr-set! dummy ctr)
 		   (foreign-struct-descriptor-getters-set! dummy (list ref ...))
-		   (foreign-struct-descriptor-setters-set! dummy (list set ...))))
+		   (foreign-struct-descriptor-setters-set! dummy (list set ...))
+		   (foreign-struct-descriptor-protocol-set! dummy
+		      (or this-protocol (default-protocol dummy)))))
 	       ))))
       ((k name specs ...)
        (identifier? #'name)

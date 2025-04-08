@@ -375,4 +375,13 @@
   (test-equal "id-str (2)"
 	      #vu8(1 2 3) (pointer->bytevector (id-str #vu8(1 2 3)) 3)))
 
+(let ()
+  (define-foreign-struct st-ppp
+    (fields (ppp p)))
+  (define-foreign-struct un-ppp
+    (fields (ppp p)))
+  (test-assert "make-st-ppp" (make-st-ppp (integer->pointer 0)))
+  (test-assert "make-un-ppp" (make-un-ppp (integer->pointer 0))))
+  
+
 (test-end)

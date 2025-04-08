@@ -29,10 +29,8 @@
 ;;;
 
 (library (pffi misc)
-    (export string-map take drop split-at drop-right check-primitive
+    (export string-map take drop split-at drop-right
 	    (rename (define define-type-alias)))
     (import (only (rnrs) define)
 	    (only (srfi :13) string-map)
-            (only (srfi :1) take drop drop-right split-at))
-(define (check-primitive t) t)
-)
+            (only (srfi :1) take drop drop-right split-at)))

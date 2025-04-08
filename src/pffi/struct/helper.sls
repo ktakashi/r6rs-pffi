@@ -33,28 +33,11 @@
 	    make-process-clauses make->type-name
 	    alignment struct 
 
-	    (rename (foreign-struct-descriptor <foreign-struct-descriptor>))
-	    foreign-struct-descriptor? make-foreign-struct-descriptor
-	    foreign-struct-descriptor-name
-	    foreign-struct-descriptor-size
-	    foreign-struct-descriptor-fields
-	    foreign-struct-descriptor-parent
-	    foreign-struct-descriptor-protocol
-	    foreign-struct-descriptor-has-protocol?
-	    foreign-struct-descriptor-ctr foreign-struct-descriptor-ctr-set!
-	    foreign-struct-descriptor-getters
-	    foreign-struct-descriptor-getters-set!
-	    foreign-struct-descriptor-setters
-	    foreign-struct-descriptor-setters-set!
-
-	    make-generic-foreign-struct-descriptor
-	    generic-foreign-struct-descriptor-alignment
-	    generic-foreign-struct-descriptor-type-ref
-	    generic-foreign-struct-descriptor-type-set!
-	    
+	    default-protocol ;; because of Guile...
 	    make-constructor
 	    make-union-constructor)
     (import (for (rnrs) run expand (meta -1))
+	    (pffi ffi-type-descriptor)
 	    (only (pffi misc) take drop split-at))
 
 ;; keyword to distinguish type (for Chez)
@@ -149,32 +132,6 @@
     (string->symbol (string-append prefix base suffix))))
 
 ;; the same thing as r6rs defines...
-(define-record-type foreign-struct-descriptor
-  (fields name                          ; for debug
-	  size
-          fields
-          parent
-	  (mutable protocol)
-          has-protocol?
-          (mutable ctr)
-	  (mutable getters)
-	  (mutable setters))
-  (protocol (lambda (p)
-	      (lambda (name size fields parent protocol)
-		(let ((n (p name size fields parent #f protocol #f '() '())))
-		  (foreign-struct-descriptor-protocol-set! n 
-		   (or protocol (default-protocol n)))
-		  n)))))
-
-;; descriptor for convenience
-;; this can be struct.sls, but Guile doesn't like it...
-(define-record-type generic-foreign-struct-descriptor
-  (parent foreign-struct-descriptor)
-  (fields alignment type-ref type-set!)
-  (protocol (lambda (n)
-              (lambda (name size alignment fields parent proto ref set)
-                ((n name size fields parent proto)
-		 alignment ref set)))))
 
 (define (total-field-count desc)
   (let loop ((desc desc) (r 0))

@@ -30,11 +30,69 @@
 
 #!r6rs
 (library (pffi ffi-type-descriptor)
-    (export ffi-type-descriptor? make-ffi-type-descriptor
-	    ffi-type-descriptor-name
+    (export (rename (type-descriptor <type-descriptor>))
+	    type-descriptor?
+	    type-descriptor-name type-descriptor-size
+
+	    ffi-type-descriptor? make-ffi-type-descriptor
+	    (rename (type-descriptor-name ffi-type-descriptor-name)
+		    (type-descriptor-size ffi-type-descriptor-size))
 	    ffi-type-descriptor-alias
-	    ffi-type-descriptor-size)
+
+	    (rename (foreign-struct-descriptor <foreign-struct-descriptor>))
+	    foreign-struct-descriptor? make-foreign-struct-descriptor
+	    (rename (type-descriptor-name foreign-struct-descriptor-name)
+		    (type-descriptor-size foreign-struct-descriptor-size))
+	    foreign-struct-descriptor-fields
+	    foreign-struct-descriptor-parent
+	    foreign-struct-descriptor-protocol
+	    foreign-struct-descriptor-protocol-set!
+	    foreign-struct-descriptor-has-protocol?
+	    foreign-struct-descriptor-ctr foreign-struct-descriptor-ctr-set!
+	    foreign-struct-descriptor-getters
+	    foreign-struct-descriptor-getters-set!
+	    foreign-struct-descriptor-setters
+	    foreign-struct-descriptor-setters-set!
+
+	    make-generic-foreign-struct-descriptor
+	    generic-foreign-struct-descriptor-alignment
+	    generic-foreign-struct-descriptor-type-ref
+	    generic-foreign-struct-descriptor-type-set!
+	    )
     (import (rnrs))
-(define-record-type ffi-type-descriptor (fields name alias size))
+(define-record-type type-descriptor
+  (fields name size))
+
+;; primitive types
+(define-record-type ffi-type-descriptor
+  (parent type-descriptor)
+  (fields alias)
+  (protocol (lambda (n)
+	      (lambda (name alias size)
+		((n name size) alias)))))
+
+;; this can be in struct/helper.sls but Guile doesn't like it...
+(define-record-type foreign-struct-descriptor
+  (parent type-descriptor)
+  (fields fields
+          parent
+	  (mutable protocol)
+          has-protocol?
+          (mutable ctr)
+	  (mutable getters)
+	  (mutable setters))
+  (protocol (lambda (p)
+	      (lambda (name size fields parent protocol)
+		((p name size) fields parent #f protocol #f '() '())))))
+
+;; this can be struct.sls, but Guile doesn't like it...
+(define-record-type generic-foreign-struct-descriptor
+  (parent foreign-struct-descriptor)
+  (fields alignment type-ref type-set!)
+  (protocol (lambda (n)
+              (lambda (name size alignment fields parent proto ref set)
+                ((n name size fields parent proto)
+		 alignment ref set)))))
+
 
 )
