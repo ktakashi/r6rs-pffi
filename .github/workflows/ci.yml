@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get -y install libgc-dev zlib1g-dev libffi-dev curl
+          sudo apt-get -y install libgc-dev zlib1g-dev libffi-dev curl libx11-dev
       - name: Install scheme-env
         run: |
           curl https://raw.githubusercontent.com/ktakashi/scheme-env/master/bin/install.sh | bash
