@@ -125,44 +125,52 @@
 			 (read racket:read))
 		 run expand)
 	    (pffi misc)
+	    (pffi ffi-type-descriptor)
             (only (srfi :13) string-index-right))
 
-(define char           _sint8)
-(define unsigned-char  _uint8)
-(define short          _sshort)
-(define unsigned-short _ushort)
-(define int            _sint)
-(define unsigned-int   _uint)
-(define long           _slong)
-(define unsigned-long  _ulong)
-(define float          _float)
-(define double         _double)
-(define int8_t         _int8)
-(define uint8_t        _uint8)
-(define int16_t        _int16)
-(define uint16_t       _uint16)
-(define int32_t        _int32)
-(define uint32_t       _uint32)
-(define int64_t        _int64)
-(define uint64_t       _uint64)
-(define pointer        _pointer)
+(define-syntax define-ftype
+  (syntax-rules ()
+    ((_ name alias)
+     (define name
+       (make-ffi-type-descriptor 'name alias (ctype-sizeof alias))))))
+(define-ftype char           _sint8)
+(define-ftype unsigned-char  _uint8)
+(define-ftype short          _sshort)
+(define-ftype unsigned-short _ushort)
+(define-ftype int            _sint)
+(define-ftype unsigned-int   _uint)
+(define-ftype long           _slong)
+(define-ftype unsigned-long  _ulong)
+(define-ftype float          _float)
+(define-ftype double         _double)
+(define-ftype int8_t         _int8)
+(define-ftype uint8_t        _uint8)
+(define-ftype int16_t        _int16)
+(define-ftype uint16_t       _uint16)
+(define-ftype int32_t        _int32)
+(define-ftype uint32_t       _uint32)
+(define-ftype int64_t        _int64)
+(define-ftype uint64_t       _uint64)
+(define-ftype pointer        _pointer)
 (define ___            '___)
 
 ;; for convenience
-(define int8         _int8)
-(define uint8        _uint8)
-(define int16        _int16)
-(define uint16       _uint16)
-(define int32        _int32)
-(define uint32       _uint32)
-(define int64        _int64)
-(define uint64       _uint64)
+(define-ftype int8         _int8)
+(define-ftype uint8        _uint8)
+(define-ftype int16        _int16)
+(define-ftype uint16       _uint16)
+(define-ftype int32        _int32)
+(define-ftype uint32       _uint32)
+(define-ftype int64        _int64)
+(define-ftype uint64       _uint64)
 
 (define-syntax callback
   (syntax-rules ()
     ((_ ret (args ...))
-     (_cprocedure (->immutable-list (list args ...)) ret))))
-(define void           _void)
+     (_cprocedure
+      (->immutable-list (list (ffi-type-descriptor-alias args) ...))
+      (ffi-type-descriptor-alias ret)))))
+(define-ftype void           _void)
 
 (define (open-shared-object path)
   (let* ((index (string-index-right path #\.))
@@ -185,7 +193,8 @@
 
 (define :varargs-after (string->keyword "varargs-after"))
 
-(define (make-c-function lib conv ret name arg-type)
+(define (make-c-function lib conv oret name arg-type)
+  (define ret (ffi-type-descriptor-alias oret))
   (define (parse-arg-types arg-type)
     (let loop ((n 0) (r '()) (types arg-type))
       (cond ((null? types) (values (reverse r) #f))
@@ -194,10 +203,15 @@
 	       (assertion-violation 'make-c-function "___ must be the last"
 				    arg-type))
 	     (values (reverse r) n))
-	    (else (loop (+ n 1) (cons (car types) r) (cdr types))))))
+	    (else
+	     (let ((t (car types)))
+	       (if (ffi-type-descriptor? t)
+		   (loop (+ n 1) (cons (ffi-type-descriptor-alias t) r)
+			 (cdr types))
+		   (loop (+ n 1) (cons t r) (cdr types))))))))
   (let-values (((required-type after) (parse-arg-types arg-type)))
     (define (convert-arg type arg)
-      (cond ((eq? type pointer)
+      (cond ((eq? type _pointer)
 	     (cond ((string? arg)
 		    (string->utf8 (string-append arg "\x0;")))
 		   (else arg)))
@@ -222,6 +236,7 @@
     (if after
 	(lambda arg*
 	  (define (cprocedure input-type output-type after)
+	    ;; Using eval for keyword argument...
 	    (eval `(_cprocedure ',input-type ',output-type
 				,:varargs-after ,after)
 		  (environment '(racket base) '(pffi compat) '(ffi unsafe))))
@@ -266,17 +281,19 @@
              ;; e.g.
              ;;  (pointer-ref-c-uint64 p 1)
              ;;  will refer a value from one byte offset
-             (define (ref ptr offset)
-               (let ((bv (make-bytevector size)))
-                 (do ((i 0 (+ i 1)))
-                     ((= i size) (ptr-ref bv type 0))
-                   (bytevector-u8-set! bv i
-                       (ptr-ref ptr unsigned-char (+ i offset))))))
+             (define ref
+	       (let ((t (ffi-type-descriptor-alias type)))
+		 (lambda (ptr offset)
+		   (let ((bv (make-bytevector size)))
+                     (do ((i 0 (+ i 1)))
+			 ((= i size) (ptr-ref bv t 0))
+                       (bytevector-u8-set! bv i
+			(ptr-ref ptr _uint8 (+ i offset))))))))
              (define (set! ptr offset value)
                (let ((bv (->bv value)))
                  (do ((len (bytevector-length bv)) (i 0 (+ i 1)))
                      ((= i len))
-                   (ptr-set! ptr unsigned-char (+ offset i)
+                   (ptr-set! ptr _uint8 (+ offset i)
                              (bytevector-u8-ref bv i)))))))))))
 
 (define-syntax define-uint->bv
@@ -331,7 +348,7 @@
 (define (pointer-ref-c-pointer p offset)
   (let ((bv (make-bytevector size-of-pointer)))
     (do ((i 0 (+ i 1)))
-        ((= i size-of-pointer) (ptr-ref bv pointer 0))
+        ((= i size-of-pointer) (ptr-ref bv _pointer 0))
       (bytevector-u8-set! bv i (pointer-ref-c-uint8 p (+ i offset))))))
 (define (pointer-set-c-pointer! p offset v)
   (let* ((pv (pointer->integer v))
@@ -349,8 +366,7 @@
     (syntax-case x ()
       ((k type)
        (with-syntax ((name (datum->syntax #'k (gen-name #'type))))
-         #'(define name
-             (ctype-sizeof type)))))))
+         #'(define name (ctype-sizeof (ffi-type-descriptor-alias type))))))))
 (define-sizeof char)
 (define-sizeof short)
 (define-sizeof int)

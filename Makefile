@@ -32,6 +32,7 @@ prepare-racket:
 	cd tests; gcc $(CFLAGS) -shared -Wall -o functions functions.c
 # Don't they have oneshot library installation command?
 #	raco pkg install -t file -n pffi/helper --pkgs --force pffi-helper.plt
+	$(RACKET) --force --install src/pffi/ffi-type-descriptor.sls
 	$(RACKET) --force --install src/pffi/misc.sls
 	$(RACKET) --force --install src/pffi/compat.mzscheme.sls
 	$(RACKET) --force --install src/pffi/procedure.sls
