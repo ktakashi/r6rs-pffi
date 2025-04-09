@@ -13,6 +13,11 @@ PFFI is a portable foreign function interface for R6RS Scheme implementations.
   This means, `alignment` keyword doesn't work on Chez.
 - Introducing `struct` keyword on struct member to distinguish primitive
   and struct.
+- Foreign types are now wrapped or ftype (on Chez), instead of symbols.
+
+**New features**
+
+- `define-type-alias` is introduced, similar usage as `typedef` in C.
 
 ## Example
 
@@ -318,10 +323,10 @@ it behave as if nothing is passed.
 
 ## Supporting implementations
 
-- Sagittarius (0.9.8 or later)
-- Racket (plt-r6rs v8.3)
-- Guile (3.0.8)
-- Chez Scheme (v9.5)
+- Sagittarius (0.9.12 or later)
+- Racket (plt-r6rs v8.16 or later)
+- Guile (3.0.10 or later)
+- Chez Scheme (v10.0.0 or later)
 
 The below implementations are no loger supported due to the inactiveness or
 officially declared to be archived.

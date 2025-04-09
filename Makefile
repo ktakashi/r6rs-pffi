@@ -25,6 +25,7 @@ test: sagittarius mosh vicare racket guile larceny
 # Sagittarius and Vicare read shared object from LD_LIBRARY_PATH
 sagittarius: prepare
 	cd tests; $(SAGITTARIUS) -L../src test.scm
+	cd tests; $(SAGITTARIUS) -L../src test-struct.scm
 
 prepare-racket:
 # Not sure since when, but Racket requires either platform specific extension
@@ -44,9 +45,11 @@ prepare-racket:
 
 racket: prepare prepare-racket
 	cd tests; $(RACKET) test.scm
+	cd tests; $(RACKET) test-struct.scm
 
 guile: prepare
 	cd tests; $(GUILE) --no-auto-compile --r6rs -L ../src test.scm
+	cd tests; $(GUILE) --no-auto-compile --r6rs -L ../src test-struct.scm
 
 prepare-chez: prepare
 	$(shell test ! -f tests/lib/srfi/:64.sls && ln -s %3a64.chezscheme.sls tests/lib/srfi/:64.sls)
