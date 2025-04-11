@@ -53,7 +53,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void
+            void boolean
 	    ___
 
             ;; pointer ref
@@ -105,6 +105,7 @@
             size-of-float
             size-of-double
             size-of-pointer
+	    size-of-boolean
             size-of-int8_t
             size-of-int16_t
             size-of-int32_t
@@ -152,6 +153,7 @@
 (define-ftype int64_t        _int64)
 (define-ftype uint64_t       _uint64)
 (define-ftype pointer        _pointer)
+(define-ftype boolean        _stdbool)
 (define ___            '___)
 
 ;; for convenience
@@ -372,6 +374,7 @@
 (define-sizeof int)
 (define-sizeof long)
 (define-sizeof pointer)
+(define-sizeof boolean)
 (define-sizeof float)
 (define-sizeof double)
 (define-sizeof int8_t)

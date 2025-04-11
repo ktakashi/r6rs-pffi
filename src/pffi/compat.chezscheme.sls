@@ -52,7 +52,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void
+            void boolean
 	    ___
 
             ;; pointer ref
@@ -105,6 +105,7 @@
             size-of-float
             size-of-double
             size-of-pointer
+	    size-of-boolean
             (rename (size-of-int8 size-of-int8_t)
                     (size-of-int16 size-of-int16_t)
                     (size-of-int32 size-of-int32_t)
@@ -222,6 +223,7 @@
 (define-type-alias double         double)
 (define-type-alias float          float)
 (define-type-alias pointer        void*)
+(define-type-alias boolean        boolean)
 
 (define (open-shared-object path)
   (load-shared-object path)
@@ -389,6 +391,8 @@
 (define-deref int64)
 (define-deref uint64)
 (define-deref pointer make-integer-pointer pointer->integer)
+
+(define size-of-boolean (ftype-sizeof boolean))
 
 ;; Unlock objects that are referenced by the pool.
 (define (cleanup-bytevector-locks!)

@@ -52,7 +52,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void
+            void boolean
 	    ___
 
             ;; pointer ref
@@ -113,7 +113,8 @@
             size-of-long
             size-of-float
             size-of-double
-            (rename (size-of-void* size-of-pointer))
+            (rename (size-of-void* size-of-pointer)
+		    (size-of-bool size-of-boolean))
             size-of-int8_t
             size-of-int16_t
             size-of-int32_t
@@ -199,5 +200,6 @@
 (define-ftype int64_t)
 (define-ftype uint64_t size-of-int64_t)
 (define pointer (make-ffi-type-descriptor 'pointer void* size-of-void*))
+(define boolean (make-ffi-type-descriptor 'boolean bool size-of-bool))
 
 )

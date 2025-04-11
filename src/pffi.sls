@@ -50,7 +50,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void
+            void boolean
 	    ___
 
             size-of-unsigned-char
@@ -64,6 +64,7 @@
             size-of-float
             size-of-double
             size-of-pointer
+	    size-of-boolean
             size-of-int8_t
             size-of-int16_t
             size-of-int32_t

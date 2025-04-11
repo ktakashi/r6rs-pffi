@@ -340,6 +340,19 @@
     (fields (ppp p)))
   (test-assert "make-st-ppp" (make-st-ppp (integer->pointer 0)))
   (test-assert "make-un-ppp" (make-un-ppp (integer->pointer 0))))
-  
+
+;; boolean type
+(let ((is-even? (foreign-procedure test-lib boolean is_even (int)))
+      (check-dispatch
+       (foreign-procedure test-lib boolean check_dispatch (int boolean))))
+  ;; (display size-of-boolean)
+  ;; We don't check the size of boolean here, as some use C99 bool
+  ;; and some, or Chez..., use just int
+  (test-assert "size-of-boolean" size-of-boolean)
+  (test-assert "is-even? (1)" (boolean? (is-even? 2)))
+  (test-assert "is-even? (2)" (not (is-even? 1)))
+  (test-assert "check-dispatch (1)" (check-dispatch 2 #t))
+  (test-assert "check-dispatch (2)" (not (check-dispatch 2 #f))))
+
 
 (test-end)

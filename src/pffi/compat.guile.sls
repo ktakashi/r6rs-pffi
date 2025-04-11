@@ -52,7 +52,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void
+            void boolean
 	    ___
 
             ;; pointer ref
@@ -105,6 +105,7 @@
             size-of-float
             size-of-double
             size-of-pointer
+	    size-of-boolean
             size-of-int8_t
             size-of-int16_t
             size-of-int32_t
@@ -158,6 +159,7 @@
 (define-ftype int64_t        int64)
 (define-ftype uint64_t       uint64)
 (define-ftype pointer        '*)
+(define-ftype boolean        int8) ;; use int8 to make the size = 1
 (define ___            '___) ;; dummy
 
 (define (open-shared-object path)
@@ -175,21 +177,23 @@
   (cond ((ffi-type-descriptor? type) (ffi-type-descriptor-alias type))
 	(else type)))
 
-(define (make-c-function lib conv ffi:ret name ffi:arg-types)
-  (define arg-types (map ->native-type ffi:arg-types))
+(define (make-c-function lib conv ffi:ret name arg-types)
   (define ret (->native-type ffi:ret))
   (define (s->p s) (b->p (string->utf8 (string-append s "\x0;"))))
   (define (b->p bv) (bytevector->pointer bv))
   (define ptr (lookup-shared-object lib (symbol->string name)))
   (define (convert-arg type arg)
-    (case type
-      ((*)
-       (cond ((string? arg) (s->p arg))
-	     ((bytevector? arg) (b->p arg))
-	     ;; Let Guile complain, if not the proper
-	     ;; one
-	     (else arg)))
-      (else arg)))
+    (cond ((eq? type pointer)
+	   (cond ((string? arg)     (s->p arg))
+		 ((bytevector? arg) (b->p arg))
+		 ;; Let Guile complain, if not the proper
+		 ;; one
+		 (else arg)))
+	  ((eq? type boolean)
+	   (unless (boolean? arg)
+	     (assertion-violation name "Boolean is required" arg))
+	   (if arg 1 0))
+	  (else arg)))
   (define (arg->type arg)
     ;; it's a bit awkward but no other way
     (cond ((number? arg)
@@ -203,27 +207,31 @@
 		 ((real? arg) double)
 		 (else (assertion-violation name "Unsuported number" arg))))
 	  ((or (string? arg) (bytevector? arg) (pointer? arg)) pointer)
+	  ((boolean? arg) boolean)
 	  (else (assertion-violation name "Unsuported type" arg))))
-		   
+  (define (convert-ret type r)
+    (cond ((eq? type boolean) (eqv? r 1))
+	  (else r)))
   (cond ((memq ___ arg-types) =>
 	 (lambda (l)
 	   (unless (null? (cdr l))
-	     (assertion-violation
-	      'make-c-function
-	      "___ must be the last of argument type"
-	      arg-types))
+	     (assertion-violation 'make-c-function
+	      "___ must be the last of argument type" arg-types))
 	   (let ((required-args (remove (lambda (e) (eq? ___ e)) arg-types)))
 	     (lambda args*
 	       (let-values (((required rest)
 			     (split-at args* (- (length required-args) 1))))
 		 (let* ((real-arg-types (append (drop-right arg-types 1)
 						(map arg->type rest)))
-			(fp (pointer->procedure ret ptr real-arg-types)))
-		   (apply fp (map convert-arg real-arg-types args*))))))))
+			(fp (pointer->procedure ret ptr
+			     (map ->native-type real-arg-types))))
+		   (convert-ret ffi:ret
+		    (apply fp (map convert-arg real-arg-types args*)))))))))
 	(else
-	 (let ((fp (pointer->procedure ret ptr arg-types)))
+	 (let ((fp (pointer->procedure ret ptr (map ->native-type arg-types))))
 	   (lambda args*
-	     (apply fp (map convert-arg arg-types args*)))))))
+	     (convert-ret ffi:ret
+			  (apply fp (map convert-arg arg-types args*))))))))
 
 (define (make-c-callback ret args proc)
   (procedure->pointer (->native-type ret) proc (map ->native-type args)))
@@ -326,6 +334,7 @@
 (define-sizeof int16_t)
 (define-sizeof int32_t)
 (define-sizeof int64_t)
+(define-sizeof boolean)
 ;; for define-deref
 (define size-of-unsigned-char   size-of-char)
 (define size-of-unsigned-short  size-of-short)

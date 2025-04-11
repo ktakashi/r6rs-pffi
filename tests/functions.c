@@ -101,5 +101,21 @@ void free_st_values(struct st2 *st)
   free(st->p.elements);
 }
 
+/* for boolean test */
+int is_even(int n) {
+  return n % 2 == 0;
+}
+
+int is_odd(int n) {
+  return n % 2 != 0;
+}
+
+int check_dispatch(int n, int check_even) {
+  if (check_even) {
+    return is_even(n);
+  } else {
+    return is_odd(n);
+  }
+}
 
 /* TODO more */
