@@ -233,6 +233,7 @@
 					      "Complex number not supported"
 					      arg))))
 	    ((cpointer? arg) _pointer)
+	    ((boolean? arg) _stdbool)
 	    (else (assertion-violation 'make-c-function
 				       "Unsupported argument" arg))))
     (if after

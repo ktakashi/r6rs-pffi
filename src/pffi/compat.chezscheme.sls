@@ -271,6 +271,7 @@
 				  "Unsuported number" arg))))
 			 ((or (string? arg) (bytevector? arg) (pointer? arg))
 			  'void*)
+			 ((boolean? arg) 'boolean)
 			 (else
 			  (assertion-violation 'name
 			   "Unsuported Scheme object" arg))))

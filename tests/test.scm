@@ -324,7 +324,9 @@
 
 ;; varargs
 (let ((sum (foreign-procedure test-lib int sum (int ___))))
-  (test-equal "variadic argument" 10 (sum 4 1 2 3 4)))
+  (test-equal "variadic argument (1)" 10 (sum 4 1 2 3 4))
+  ;; #t = 1 :)
+  (test-equal "variadic argument (2)" 10 (sum 4 #t 2 3 4)))
 
 ;; typedef
 (let ((id-str (foreign-procedure test-lib ppp id_str (ppp))))
