@@ -60,7 +60,7 @@
       ((k lib type name scheme-name)
        (identifier? #'type)
        (with-syntax (((pointer-ref pointer-set!)
-                      (datum->syntax #'k (derefs #'type))))
+                      (datum->syntax #'dummy (derefs #'type))))
          #'(begin
              (define dummy (lookup-shared-object lib (symbol->string 'name)))
              (define-syntax scheme-name
@@ -70,8 +70,8 @@
       ((k lib (array type) name scheme-name)
        (identifier? #'type)
        (with-syntax (((pointer-ref pointer-set!)
-                      (datum->syntax #'k (derefs #'type)))
-		     (size-of (datum->syntax #'k (sizeof #'type))))
+                      (datum->syntax #'dummy (derefs #'type)))
+		     (size-of (datum->syntax #'dummy (sizeof #'type))))
          #'(begin
              (define dummy (lookup-shared-object lib (symbol->string 'name)))
              (define-syntax scheme-name
@@ -83,4 +83,14 @@
 		    ((_ n) #'(pointer-ref dummy (* size-of n)))
 		    (id (identifier? #'id) #'dummy)))))))))))
 
-  )
+;; some need to be fixed things
+(define size-of-int8    size-of-int8_t)
+(define size-of-int16   size-of-int16_t)
+(define size-of-int32   size-of-int32_t)
+(define size-of-int64   size-of-int64_t)
+(define size-of-uint8   size-of-int8_t)
+(define size-of-uint16  size-of-int16_t)
+(define size-of-uint32  size-of-int32_t)
+(define size-of-uint64  size-of-int64_t)
+
+)
