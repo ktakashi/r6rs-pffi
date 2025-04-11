@@ -18,6 +18,7 @@ PFFI is a portable foreign function interface for R6RS Scheme implementations.
 **New features**
 
 - `define-type-alias` is introduced, similar usage as `typedef` in C.
+- `boolean` support for Scheme boolean.
 
 ## Example
 
@@ -123,12 +124,21 @@ the difference. Currently following types are supported.
 - `int64_t`
 - `uint64_t`
 - `pointer`
+- `boolean`
 - `void`
 - `callback`
 
 Above types are all variable except `callback`. Callback is a procedure
 which is called from foreign world to Scheme world. Thus it may need to
 have foreign types.
+
+#### Foreign type size
+
+The foreign type size can be retrieved from the variable, whose name
+is `size-of-{type}`, e.g. `size-of-char`, except `void` and `callback`.
+
+NOTE: `size-of-boolean` may differs depending on the implementation.
+It can be either, 1 or 4.
 
 #### Variadic arguments
 
@@ -241,7 +251,8 @@ _field spec_ can be one the followings:
 - (`fields` (_type_ _field_ _getter_))
 - (`fields` (_type_ _field_ _getter_ _setter_))
 
-_type_ must be a type listed in _Foreign types_ section except `callback`.
+_type_ must be a type listed in _Foreign types_ section except `callback`,
+or `(struct _struct-name_)` for foreigin struct.
 
 _field_ is the field name. This is used for generating _getter_ and _setter_.
 In other words, it doesn't have to be meaningful name as long as _getter_
