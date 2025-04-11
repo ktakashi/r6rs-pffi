@@ -67,10 +67,7 @@
        ;; collect fields, parent and protocol
        (with-syntax (((((type field ref set) ...) parent protocol align)
                       (process-clauses #'k #'name #'(specs ...)))
-                     (sizeof (->sizeof #'k #'name))
-                     ;; To avoid Guile's bug.
-                     ;; this isn't needed if macro expander works *properly*
-                     ((this-protocol) (generate-temporaries '(this-protocol))))
+                     (sizeof (->sizeof #'k #'name)))
 	 (with-syntax (((type ...) (->type-name  #'(type ...))))
            #'(begin
 	       (define alignment-check
@@ -135,10 +132,7 @@
        ;; collect fields, parent and protocol
        (with-syntax (((((type field ref set) ...) parent protocol alignment)
 		      (process-clauses #'k #'name #'(specs ...)))
-                     (sizeof (->sizeof #'k #'name))
-                     ;; To avoid Guile's bug.
-                     ;; this isn't needed if macro expander works *properly*
-                     ((this-protocol) (generate-temporaries '(this-protocol))))
+                     (sizeof (->sizeof #'k #'name)))
 	 (when #'parent
 	   (syntax-violation 'define-foreign-union "Union can't have parent" x))
 	 (when #'alignment

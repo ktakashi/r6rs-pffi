@@ -30,39 +30,57 @@
 
 #!r6rs
 (library (pffi variable)
-  (export define-foreign-variable define-type-alias)
+  (export define-foreign-variable define-type-alias array)
   (import (rnrs)
           (for (pffi misc) expand)
 	  (only (pffi misc) define-type-alias)
           (pffi compat))
 
-  ;; to make FFI variable settable, we use macro
-  (define-syntax define-foreign-variable
-    (lambda (x)
-      (define (->scheme-name name)
-        (string->symbol
-         (string-map (lambda (c) (if (char=? c #\_) #\- c))
-                     (string-downcase (symbol->string (syntax->datum name))))))
-      (define (derefs t)
-        (let ((s (symbol->string (syntax->datum t))))
-          (list (string->symbol (string-append "pointer-ref-c-" s))
-                (string->symbol (string-append "pointer-set-c-" s "!")))))
-      (syntax-case x ()
-        ((k lib type name)
-         (with-syntax ((scheme-name
-                        (datum->syntax #'k (->scheme-name #'name))))
-           #'(k lib type name scheme-name)))
-        ((k lib type name scheme-name)
-         (with-syntax (((pointer-ref pointer-set!)
-                        (datum->syntax #'k (derefs #'type)))
-                       ;; To avoid Guile's bug.
-                       ;; this isn't needed if macro expander works *properly*
-                       ((dummy) (generate-temporaries '(dummy))))
-           #'(begin
-               (define dummy (lookup-shared-object lib (symbol->string 'name)))
-               (define-syntax scheme-name
-                 (identifier-syntax
-                  (_ (pointer-ref dummy 0))
-                  ((set! _ e) (pointer-set! dummy 0 e))))))))))
+(define-syntax array (syntax-rules ()))
+
+;; to make FFI variable settable, we use macro
+(define-syntax define-foreign-variable
+  (lambda (x)
+    (define (->scheme-name name)
+      (string->symbol
+       (string-map (lambda (c) (if (char=? c #\_) #\- c))
+                   (string-downcase (symbol->string (syntax->datum name))))))
+    (define (derefs t)
+      (let ((s (symbol->string (syntax->datum t))))
+        (list (string->symbol (string-append "pointer-ref-c-" s))
+              (string->symbol (string-append "pointer-set-c-" s "!")))))
+    (define (sizeof t)
+      (let ((s (symbol->string (syntax->datum t))))
+        (string->symbol (string-append "size-of-" s))))
+    (syntax-case x (array)
+      ((k lib type name)
+       (with-syntax ((scheme-name
+                      (datum->syntax #'k (->scheme-name #'name))))
+         #'(k lib type name scheme-name)))
+      ((k lib type name scheme-name)
+       (identifier? #'type)
+       (with-syntax (((pointer-ref pointer-set!)
+                      (datum->syntax #'k (derefs #'type))))
+         #'(begin
+             (define dummy (lookup-shared-object lib (symbol->string 'name)))
+             (define-syntax scheme-name
+               (identifier-syntax
+                (_ (pointer-ref dummy 0))
+                ((set! _ e) (pointer-set! dummy 0 e)))))))
+      ((k lib (array type) name scheme-name)
+       (identifier? #'type)
+       (with-syntax (((pointer-ref pointer-set!)
+                      (datum->syntax #'k (derefs #'type)))
+		     (size-of (datum->syntax #'k (sizeof #'type))))
+         #'(begin
+             (define dummy (lookup-shared-object lib (symbol->string 'name)))
+             (define-syntax scheme-name
+	       (make-variable-transformer
+		(lambda (xx)
+		  (syntax-case xx (set!)
+		    ((set! scheme-name (n val))
+		     #'(pointer-set! dummy (* size-of n) val))
+		    ((_ n) #'(pointer-ref dummy (* size-of n)))
+		    (id (identifier? #'id) #'dummy)))))))))))
 
   )

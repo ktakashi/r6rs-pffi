@@ -120,7 +120,7 @@
 	    define-type-alias
 	    
             ;; variable
-            define-foreign-variable
+            define-foreign-variable array
 
             pointer?
 	    null-pointer?

@@ -19,6 +19,7 @@ PFFI is a portable foreign function interface for R6RS Scheme implementations.
 
 - `define-type-alias` is introduced, similar usage as `typedef` in C.
 - `boolean` support for Scheme boolean.
+- Supporting array foreign variable.
 
 ## Example
 
@@ -83,6 +84,7 @@ Callback object may not be released automatically so it is user's responsibilty
 to make sure to release it.
 
 #### [Macro] `define-foreign-variable` _shared-object_ _type_ _symbol-name_ [_scheme-name_]
+#### [Macro] `define-foreign-variable` _shared-object_ (array _type_) _symbol-name_ [_scheme-name_]
 
 Lookup foreign variable _symbol-name_ from given _shared-object_ and binds it
 to _scheme-name_. If _scheme-name_ is not given, then it is generated from
@@ -91,10 +93,18 @@ _symbol-name_ with following rules:
 - converting to lower case
 - converting `_` to `-`
 
-_type_ must be specified properly. Currently _type_ can only be numerical.
+_type_ must be a type which has `pointer-ref-c-*` and `pointer-set-c-*` 
+procedure.
 
 The bound variable is settable, thus `set!` syntax can change the value
 if it's allowed.
+
+If the second form is used, then the it creates an reference to an array
+pointer, and the _scheme-name_ will be a macro of 3 patterns:
+
+`_scheme-name_`: to return the raw pointer of the array.  
+`(_scheme-name_ n)`: to refer the `n`th element of the array.  
+`(set! _scheme-name_ (n v))`: to set `v` to the `n`th element of the array.
 
 #### [Macro] `define-type-alias` _name_ _alias_
 
