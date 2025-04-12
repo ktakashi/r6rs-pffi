@@ -39,6 +39,11 @@
 		    (type-descriptor-size ffi-type-descriptor-size))
 	    ffi-type-descriptor-alias
 
+	    pointer-accesible-ffi-type-descriptor?
+	    make-pointer-accesible-ffi-type-descriptor
+	    pointer-accesible-ffi-type-descriptor-pointer-ref
+	    pointer-accesible-ffi-type-descriptor-pointer-set!
+
 	    (rename (foreign-struct-descriptor <foreign-struct-descriptor>))
 	    foreign-struct-descriptor? make-foreign-struct-descriptor
 	    (rename (type-descriptor-name foreign-struct-descriptor-name)
@@ -70,6 +75,13 @@
   (protocol (lambda (n)
 	      (lambda (name alias size)
 		((n name size) alias)))))
+
+(define-record-type pointer-accesible-ffi-type-descriptor
+  (parent ffi-type-descriptor)
+  (fields pointer-ref pointer-set!)
+  (protocol (lambda (n)
+	      (lambda (name alias size ref set)
+		((n name alias size) ref set)))))
 
 ;; this can be in struct/helper.sls but Guile doesn't like it...
 (define-record-type foreign-struct-descriptor

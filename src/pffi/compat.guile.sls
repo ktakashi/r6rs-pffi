@@ -138,29 +138,71 @@
 (define-syntax define-ftype
   (syntax-rules ()
     ((_ name type)
-     (define name (make-ffi-type-descriptor 'name type (sizeof type))))))
+     (define name
+       (make-ffi-type-descriptor 'name type (sizeof type))))
+    ((_ name type bv-ref bv-set!)
+     (define name
+       (make-pointer-accesible-ffi-type-descriptor
+	'name type (sizeof type)
+	(let ((size (sizeof type)))
+	  (lambda (ptr offset)
+            (let ((bv (pointer->bytevector ptr (+ size offset))))
+              (bv-ref bv offset (native-endianness)))))
+	(let ((size (sizeof type)))
+	  (lambda (ptr offset value)
+            (let ((bv (pointer->bytevector ptr (+ size offset))))
+              (bv-set! bv offset value (native-endianness))))))))))
 
-(define-ftype char           int8)
-(define-ftype unsigned-char  uint8)
-(define-ftype short          ffi:short)
-(define-ftype unsigned-short ffi:unsigned-short)
-(define-ftype int            ffi:int)
-(define-ftype unsigned-int   ffi:unsigned-int)
-(define-ftype long           ffi:long)
-(define-ftype unsigned-long  ffi:unsigned-long)
-(define-ftype float          ffi:float)
-(define-ftype double         ffi:double)
-(define-ftype int8_t         int8)
-(define-ftype uint8_t        uint8)
-(define-ftype int16_t        int16)
-(define-ftype uint16_t       uint16)
-(define-ftype int32_t        int32)
-(define-ftype uint32_t       uint32)
-(define-ftype int64_t        int64)
-(define-ftype uint64_t       uint64)
-(define-ftype pointer        '*)
+(define-ftype char           int8
+  bytevector-s8-ref/endian bytevector-s8-set/endian!)
+(define-ftype unsigned-char  uint8
+  bytevector-u8-ref/endian bytevector-u8-set/endian!)
+(define-ftype short          ffi:short
+  bytevector-s16-ref bytevector-s16-set!)
+(define-ftype unsigned-short ffi:unsigned-short
+  bytevector-u16-ref bytevector-u16-set!)
+(define-ftype int            ffi:int
+  bytevector-s32-ref bytevector-s32-set!)
+(define-ftype unsigned-int   ffi:unsigned-int
+  bytevector-u32-ref bytevector-u32-set!)
+(define-ftype long           ffi:long
+  bytevector-long-ref bytevector-long-set!)
+(define-ftype unsigned-long  ffi:unsigned-long
+  bytevector-ulong-ref bytevector-ulong-set!)
+(define-ftype float          ffi:float
+  bytevector-ieee-single-ref bytevector-ieee-single-set!)
+(define-ftype double         ffi:double
+  bytevector-ieee-double-ref bytevector-ieee-double-set!)
+(define-ftype int8_t         int8
+  bytevector-s8-ref/endian bytevector-s8-set/endian!)
+(define-ftype uint8_t        uint8
+  bytevector-u8-ref/endian bytevector-u8-set/endian!)
+(define-ftype int16_t        int16
+  bytevector-s16-ref bytevector-s16-set!)
+(define-ftype uint16_t       uint16
+  bytevector-u16-ref bytevector-u16-set!)
+(define-ftype int32_t        int32
+  bytevector-s32-ref bytevector-s32-set!)
+(define-ftype uint32_t       uint32
+  bytevector-u32-ref bytevector-u32-set!)
+(define-ftype int64_t        int64
+  bytevector-s64-ref bytevector-s64-set!)
+(define-ftype uint64_t       uint64
+  bytevector-u64-ref bytevector-u64-set!)
+(define-ftype pointer        '*
+  bytevector-pointer-ref bytevector-pointer-set!)
 (define-ftype boolean        int8) ;; use int8 to make the size = 1
 (define ___            '___) ;; dummy
+
+;; for convenience
+(define int8         int8_t)
+(define uint8        uint8_t)
+(define int16        int16_t)
+(define uint16       uint16_t)
+(define int32        int32_t)
+(define uint32       uint32_t)
+(define int64        int64_t)
+(define uint64       uint64_t)
 
 (define (open-shared-object path)
   (let* ((index (string-index-right path #\.))
@@ -240,19 +282,16 @@
   (lambda (x)
     (define (gen-name t)
       (let ((s (symbol->string (syntax->datum t))))
-        (list (string->symbol (string-append "size-of-" s))
-              (string->symbol (string-append "pointer-ref-c-" s))
+        (list (string->symbol (string-append "pointer-ref-c-" s))
               (string->symbol (string-append "pointer-set-c-" s "!")))))
     (syntax-case x ()
-      ((k type bv-ref bv-set!)
-       (with-syntax (((size ref set!) (datum->syntax #'k (gen-name #'type))))
+      ((k type)
+       (with-syntax (((ref set!) (datum->syntax #'k (gen-name #'type))))
          #'(begin
-             (define (ref ptr offset)
-               (let ((bv (pointer->bytevector ptr (+ size offset))))
-                 (bv-ref bv offset (native-endianness))))
-             (define (set! ptr offset value)
-               (let ((bv (pointer->bytevector ptr (+ size offset))))
-                 (bv-set! bv offset value (native-endianness))))))))))
+             (define ref
+	       (pointer-accesible-ffi-type-descriptor-pointer-ref type))
+             (define set!
+	       (pointer-accesible-ffi-type-descriptor-pointer-set! type))))))))
 (define (bytevector-u8-ref/endian bv index endian)
   (bytevector-u8-ref bv index))
 (define (bytevector-u8-set/endian! bv index v endian)
@@ -281,24 +320,24 @@
       (bytevector-u64-set! bv index v endian)))
 
 
-(define-deref char bytevector-s8-ref/endian bytevector-s8-set/endian!)
-(define-deref unsigned-char bytevector-u8-ref/endian bytevector-u8-set/endian!)
-(define-deref short bytevector-s16-ref bytevector-s16-set!)
-(define-deref unsigned-short bytevector-u16-ref bytevector-u16-set!)
-(define-deref int bytevector-s32-ref bytevector-s32-set!)
-(define-deref unsigned-int bytevector-u32-ref bytevector-u32-set!)
-(define-deref long bytevector-long-ref bytevector-long-set!)
-(define-deref unsigned-long bytevector-ulong-ref bytevector-ulong-set!)
-(define-deref float bytevector-ieee-single-ref bytevector-ieee-single-set!)
-(define-deref double bytevector-ieee-double-ref bytevector-ieee-double-set!)
-(define-deref int8 bytevector-s8-ref/endian bytevector-s8-set/endian!)
-(define-deref uint8 bytevector-u8-ref/endian bytevector-u8-set/endian!)
-(define-deref int16 bytevector-s16-ref bytevector-s16-set!)
-(define-deref uint16 bytevector-u16-ref bytevector-u16-set!)
-(define-deref int32 bytevector-s32-ref bytevector-s32-set!)
-(define-deref uint32 bytevector-u32-ref bytevector-u32-set!)
-(define-deref int64 bytevector-s64-ref bytevector-s64-set!)
-(define-deref uint64 bytevector-u64-ref bytevector-u64-set!)
+(define-deref char)
+(define-deref unsigned-char)
+(define-deref short)
+(define-deref unsigned-short)
+(define-deref int)
+(define-deref unsigned-int)
+(define-deref long)
+(define-deref unsigned-long)
+(define-deref float)
+(define-deref double)
+(define-deref int8)
+(define-deref uint8)
+(define-deref int16)
+(define-deref uint16)
+(define-deref int32)
+(define-deref uint32)
+(define-deref int64)
+(define-deref uint64)
 
 (define (bytevector-pointer-ref bv index endian)
   (make-pointer
@@ -310,7 +349,7 @@
     (if (= size-of-pointer 4)
         (bytevector-u32-set! bv index i endian)
         (bytevector-u64-set! bv index i endian))))
-(define-deref pointer bytevector-pointer-ref bytevector-pointer-set!)
+(define-deref pointer)
 
 
 (define-syntax define-sizeof
@@ -321,7 +360,7 @@
     (syntax-case x ()
       ((k type)
        (with-syntax ((name (datum->syntax #'k (gen-name #'type))))
-         #'(define name (sizeof (ffi-type-descriptor-alias type))))))))
+         #'(define name (ffi-type-descriptor-size type)))))))
 
 (define-sizeof char)
 (define-sizeof short)

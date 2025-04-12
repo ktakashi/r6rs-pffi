@@ -167,9 +167,12 @@
 
 (define-syntax define-ftype
   (lambda (x)
-    (define (->type k name)
+    (define (->type&acc k name)
       (define base (symbol->string (syntax->datum name)))
-      (datum->syntax k (string->symbol (string-append "ffi:" base))))
+      (datum->syntax k
+       (list (string->symbol (string-append "ffi:" base))
+	     (string->symbol (string-append "pointer-ref-c-" base))
+	     (string->symbol (string-append "pointer-set-c-" base "!")))))
     (define (->sizeof k name)
       (define base (symbol->string (syntax->datum name)))
       (datum->syntax k (string->symbol (string-append "size-of-" base))))
@@ -178,8 +181,10 @@
        (with-syntax ((sizeof (->sizeof #'k #'name)))
 	 #'(define-ftype name sizeof)))
       ((k name sizeof)
-       (with-syntax ((type (->type #'k #'name)))
-	 #'(define name (make-ffi-type-descriptor 'name type sizeof)))))))
+       (with-syntax (((type p-ref p-set) (->type&acc #'k #'name)))
+	 #'(define name
+	     (make-pointer-accesible-ffi-type-descriptor
+	      'name type sizeof p-ref p-set)))))))
 
 (define-ftype char)
 (define-ftype unsigned-char size-of-char)
@@ -199,7 +204,9 @@
 (define-ftype uint32_t size-of-int32_t)
 (define-ftype int64_t)
 (define-ftype uint64_t size-of-int64_t)
-(define pointer (make-ffi-type-descriptor 'pointer void* size-of-void*))
+(define pointer (make-pointer-accesible-ffi-type-descriptor
+		 'pointer void* size-of-void*
+		 pointer-ref-c-pointer pointer-set-c-pointer!))
 (define boolean (make-ffi-type-descriptor 'boolean bool size-of-bool))
 
 )
