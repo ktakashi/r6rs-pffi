@@ -357,7 +357,8 @@
   (test-assert "check-dispatch (2)" (not (check-dispatch 2 #f))))
 
 (let ()
-  (define-foreign-variable test-lib (array int) int_array int-array)
+  (define-type-alias my-int int)
+  (define-foreign-variable test-lib (array my-int) int_array int-array)
   (define get-int-array (foreign-procedure test-lib pointer get_int_array ()))
   (test-assert (pointer? int-array))
   (test-equal 1 (int-array 0))

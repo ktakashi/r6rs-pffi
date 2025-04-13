@@ -34,7 +34,8 @@
   (import (rnrs)
           (for (pffi misc) expand)
 	  (only (pffi misc) define-type-alias)
-          (pffi compat))
+          (pffi compat)
+	  (pffi variable helper))
 
 (define-syntax array (syntax-rules ()))
 
@@ -45,10 +46,6 @@
       (string->symbol
        (string-map (lambda (c) (if (char=? c #\_) #\- c))
                    (string-downcase (symbol->string (syntax->datum name))))))
-    (define (derefs t)
-      (let ((s (symbol->string (syntax->datum t))))
-        (list (string->symbol (string-append "pointer-ref-c-" s))
-              (string->symbol (string-append "pointer-set-c-" s "!")))))
     (define (sizeof t)
       (let ((s (symbol->string (syntax->datum t))))
         (string->symbol (string-append "size-of-" s))))
@@ -59,20 +56,21 @@
          #'(k lib type name scheme-name)))
       ((k lib type name scheme-name)
        (identifier? #'type)
-       (with-syntax (((pointer-ref pointer-set!)
-                      (datum->syntax #'dummy (derefs #'type))))
-         #'(begin
-             (define dummy (lookup-shared-object lib (symbol->string 'name)))
-             (define-syntax scheme-name
-               (identifier-syntax
-                (_ (pointer-ref dummy 0))
-                ((set! _ e) (pointer-set! dummy 0 e)))))))
+       #'(begin
+	   (define pointer-ref (type->pointer-ref type))
+	   (define pointer-set! (type->pointer-set! type))
+           (define dummy (lookup-shared-object lib (symbol->string 'name)))
+           (define-syntax scheme-name
+             (identifier-syntax
+              (_ (pointer-ref dummy 0))
+              ((set! _ e) (pointer-set! dummy 0 e))))))
       ((k lib (array type) name scheme-name)
        (identifier? #'type)
-       (with-syntax (((pointer-ref pointer-set!)
-                      (datum->syntax #'dummy (derefs #'type)))
-		     (size-of (datum->syntax #'dummy (sizeof #'type))))
+       (with-syntax ((size-of (datum->syntax #'dummy (sizeof #'type))))
          #'(begin
+	     (define pointer-ref (type->pointer-ref type))
+	     (define pointer-set! (type->pointer-set! type))
+	     (define size-of (type->size-of type))
              (define dummy (lookup-shared-object lib (symbol->string 'name)))
              (define-syntax scheme-name
 	       (make-variable-transformer
@@ -82,15 +80,4 @@
 		     #'(pointer-set! dummy (* size-of n) val))
 		    ((_ n) #'(pointer-ref dummy (* size-of n)))
 		    (id (identifier? #'id) #'dummy)))))))))))
-
-;; some need to be fixed things
-(define size-of-int8    size-of-int8_t)
-(define size-of-int16   size-of-int16_t)
-(define size-of-int32   size-of-int32_t)
-(define size-of-int64   size-of-int64_t)
-(define size-of-uint8   size-of-int8_t)
-(define size-of-uint16  size-of-int16_t)
-(define size-of-uint32  size-of-int32_t)
-(define size-of-uint64  size-of-int64_t)
-
 )
