@@ -46,9 +46,6 @@
       (string->symbol
        (string-map (lambda (c) (if (char=? c #\_) #\- c))
                    (string-downcase (symbol->string (syntax->datum name))))))
-    (define (sizeof t)
-      (let ((s (symbol->string (syntax->datum t))))
-        (string->symbol (string-append "size-of-" s))))
     (syntax-case x (array)
       ((k lib type name)
        (with-syntax ((scheme-name
@@ -66,18 +63,17 @@
               ((set! _ e) (pointer-set! dummy 0 e))))))
       ((k lib (array type) name scheme-name)
        (identifier? #'type)
-       (with-syntax ((size-of (datum->syntax #'dummy (sizeof #'type))))
-         #'(begin
-	     (define pointer-ref (type->pointer-ref type))
-	     (define pointer-set! (type->pointer-set! type))
-	     (define size-of (type->size-of type))
-             (define dummy (lookup-shared-object lib (symbol->string 'name)))
-             (define-syntax scheme-name
-	       (make-variable-transformer
-		(lambda (xx)
-		  (syntax-case xx (set!)
-		    ((set! scheme-name (n val))
-		     #'(pointer-set! dummy (* size-of n) val))
-		    ((_ n) #'(pointer-ref dummy (* size-of n)))
-		    (id (identifier? #'id) #'dummy)))))))))))
+       #'(begin
+	   (define pointer-ref (type->pointer-ref type))
+	   (define pointer-set! (type->pointer-set! type))
+	   (define size-of (type->size-of type))
+           (define dummy (lookup-shared-object lib (symbol->string 'name)))
+           (define-syntax scheme-name
+	     (make-variable-transformer
+	      (lambda (xx)
+		(syntax-case xx (set!)
+		  ((set! scheme-name (n val))
+		   #'(pointer-set! dummy (* size-of n) val))
+		  ((_ n) #'(pointer-ref dummy (* size-of n)))
+		  (id (identifier? #'id) #'dummy))))))))))
 )
