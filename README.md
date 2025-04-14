@@ -107,8 +107,11 @@ pointer, and the _scheme-name_ will be a macro of 3 patterns:
 `(set! _scheme-name_ (n v))`: to set `v` to the `n`th element of the array.
 
 #### [Macro] `define-type-alias` _name_ _alias_
+#### [Macro] `define-type-alias` _name_ (* _alias_)
 
 Defines a type alias. Similar mechanism as `typedef` in C.
+
+If the second form is used, then _name_ will be an alias of the `pointer`.
 
 ### Foreign types
 
