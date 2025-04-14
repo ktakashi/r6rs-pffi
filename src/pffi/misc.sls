@@ -30,7 +30,15 @@
 
 (library (pffi misc)
     (export string-map take drop split-at drop-right
-	    (rename (define define-type-alias)))
-    (import (only (rnrs) define)
+	    define-type-alias)
+    (import (only (rnrs) define-syntax syntax-rules define *)
 	    (only (srfi :13) string-map)
-            (only (srfi :1) take drop drop-right split-at)))
+            (only (srfi :1) take drop drop-right split-at)
+	    (only (pffi compat) pointer))
+
+(define-syntax define-type-alias
+  (syntax-rules (*)
+    ((_ name (* alias)) (define name pointer))
+    ((_ name alias) (define name alias))))
+
+)

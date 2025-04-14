@@ -358,7 +358,7 @@
 
 (let ()
   (define-type-alias my-int int)
-  (define-foreign-variable test-lib (array my-int) int_array int-array)
+  (define-foreign-variable test-lib (array my-int) int_array)
   (define get-int-array (foreign-procedure test-lib pointer get_int_array ()))
   (test-assert (pointer? int-array))
   (test-equal 1 (int-array 0))
@@ -367,5 +367,19 @@
   (test-equal 100 (int-array 0))
   (let ((raw (get-int-array)))
     (test-equal 100 (pointer-ref-c-int raw 0))))
+
+(let ()
+  (define-foreign-struct st-parent
+    (fields (int count)
+	    (pointer elements)))
+  (define-foreign-struct st-child
+    (fields ((struct st-parent) p)
+	    (short attr)))
+  (define-type-alias p-st (* st-child))
+  (let ((st (make-st-child (make-st-parent 0 (integer->pointer 0)) 0)))
+    ((foreign-procedure test-lib void fill_st_values (p-st))
+     (bytevector->pointer st))
+    (test-equal "count p-st" 10 (st-parent-count st))))
+
 
 (test-end)

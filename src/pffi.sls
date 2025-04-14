@@ -117,7 +117,7 @@
             pointer-set-c-pointer!
 
 	    ;; typedef
-	    define-type-alias
+	    define-type-alias *
 	    
             ;; variable
             define-foreign-variable array
@@ -139,7 +139,7 @@
             (pffi variable)
             (pffi pointers)
             (pffi struct)
-            (only (rnrs) define))
+            (only (rnrs) define *))
 
 (define size-of-unsigned-char  size-of-char)
 (define size-of-unsigned-short size-of-short)

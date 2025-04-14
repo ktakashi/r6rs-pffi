@@ -125,8 +125,8 @@
 			 (cons icons)
 			 (read racket:read))
 		 run expand)
-	    (pffi misc)
 	    (pffi ffi-type-descriptor)
+	    (only (srfi :1) split-at)
             (only (srfi :13) string-index-right))
 
 (define (pointer-ref-c-pointer p offset)
