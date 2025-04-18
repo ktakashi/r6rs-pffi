@@ -204,10 +204,15 @@
 
 (define-syntax callback
   (syntax-rules ()
+    ((_ (conv ...) ret (args ...))
+     (_cprocedure
+      (->immutable-list (list (ffi-type-descriptor-alias args) ...))
+      (ffi-type-descriptor-alias ret)))
     ((_ ret (args ...))
      (_cprocedure
       (->immutable-list (list (ffi-type-descriptor-alias args) ...))
       (ffi-type-descriptor-alias ret)))))
+
 (define-ftype void           _void)
 
 (define (open-shared-object path)

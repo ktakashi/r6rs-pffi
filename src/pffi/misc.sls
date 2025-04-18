@@ -34,10 +34,10 @@
     (import (only (rnrs) define-syntax syntax-rules define *)
 	    (only (srfi :13) string-map)
             (only (srfi :1) take drop drop-right split-at)
-	    (only (pffi compat) pointer))
+	    (only (pffi compat) pointer callback))
 
 (define-syntax define-type-alias
-  (syntax-rules (*)
+  (syntax-rules (* callback)
     ((_ name (* alias)) (define name pointer))
     ((_ name alias) (define name alias))))
 

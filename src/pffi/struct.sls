@@ -193,10 +193,12 @@
       t))
 
 (define (struct-alignment lis)
-  (apply max (map (lambda (l)
-                    (if (foreign-struct-descriptor? l)
-                        (generic-foreign-struct-descriptor-alignment l)
-                        (type-descriptor-size l))) lis)))
+  (if (null? lis)
+      0
+      (apply max (map (lambda (l)
+			(if (foreign-struct-descriptor? l)
+                            (generic-foreign-struct-descriptor-alignment l)
+                            (type-descriptor-size l))) lis))))
 
 ;; ref
 ;;  http://en.wikipedia.org/wiki/Data_structure_alignment

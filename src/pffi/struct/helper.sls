@@ -66,7 +66,7 @@
 				  x (car fields))))))
        (let loop ((clauses clauses) (fs #f) (par #f) (proto #f) (align #f))
 	 (syntax-case clauses (fields parent protocol alginment)
-	   (() (list fs par proto align))
+	   (() (list (or fs '()) par proto align))
 	   (((fields defs (... ...)) . rest)
 	    (or (not fs)
 		(syntax-violation who "only one fields clause allowed" x

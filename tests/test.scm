@@ -382,4 +382,9 @@
     (test-equal "count p-st" 10 (st-parent-count st))))
 
 
+;; empty struct
+(let ()
+  (define-foreign-struct ok)
+  (test-equal "size of empty struct" 0 size-of-ok))
+
 (test-end)

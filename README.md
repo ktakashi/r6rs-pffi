@@ -20,6 +20,7 @@ PFFI is a portable foreign function interface for R6RS Scheme implementations.
 - `define-type-alias` is introduced, similar usage as `typedef` in C.
 - `boolean` support for Scheme boolean.
 - Supporting array foreign variable.
+- Empty struct, i.e. `(define-foreign-struct foo)`, is supported
 
 ## Example
 
