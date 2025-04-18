@@ -387,4 +387,14 @@
   (define-foreign-struct ok)
   (test-equal "size of empty struct" 0 size-of-ok))
 
+;; pointer variable
+(let ()
+  (define-foreign-variable test-lib (* int) int_pointer)
+
+  (let ((value ((foreign-procedure test-lib int initial_int_pointer_value ()))))
+    (test-assert "pointer value" (pointer? int-pointer))
+    (test-assert "pointer vs actual value (1)" (not (equal? value int-pointer)))
+
+    (test-equal "pointer value (1)" value (pointer-ref-c-int int-pointer 0))))
+
 (test-end)

@@ -46,11 +46,14 @@
       (string->symbol
        (string-map (lambda (c) (if (char=? c #\_) #\- c))
                    (string-downcase (symbol->string (syntax->datum name))))))
-    (syntax-case x (array)
+    (syntax-case x (* array)
       ((k lib type name)
        (with-syntax ((scheme-name
                       (datum->syntax #'k (->scheme-name #'name))))
          #'(k lib type name scheme-name)))
+      ((k lib (* type) name scheme-name)
+       (identifier? #'type)
+       #'(k lib pointer name scheme-name))
       ((k lib type name scheme-name)
        (identifier? #'type)
        #'(begin
@@ -61,6 +64,7 @@
              (identifier-syntax
               (_ (pointer-ref dummy 0))
               ((set! _ e) (pointer-set! dummy 0 e))))))
+      
       ((k lib (array type) name scheme-name)
        (identifier? #'type)
        #'(begin

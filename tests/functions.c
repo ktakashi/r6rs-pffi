@@ -102,15 +102,18 @@ void free_st_values(struct st2 *st)
 }
 
 /* for boolean test */
-int is_even(int n) {
+int is_even(int n) 
+{
   return n % 2 == 0;
 }
 
-int is_odd(int n) {
+int is_odd(int n) 
+{
   return n % 2 != 0;
 }
 
-int check_dispatch(int n, int check_even) {
+int check_dispatch(int n, int check_even) 
+{
   if (check_even) {
     return is_even(n);
   } else {
@@ -123,6 +126,15 @@ int int_array[10] = {1,2,3,4,5,6,7,8,9,10};
 
 int * get_int_array() {
   return int_array;
+}
+
+extern int * int_pointer;
+static int int_value = 100;
+int * int_pointer = &int_value;
+
+int initial_int_pointer_value()
+{
+  return int_value;
 }
 
 /* TODO more */
