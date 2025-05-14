@@ -22,6 +22,7 @@ PFFI is a portable foreign function interface for R6RS Scheme implementations.
 - Supporting array foreign variable.
 - Supporting `(* type)` pointer form for foreign variable.
 - Empty struct, i.e. `(define-foreign-struct foo)`, is supported
+- Supporting `wchar_t` as Scheme character.
 
 ## Example
 
@@ -144,6 +145,7 @@ the difference. Currently following types are supported.
 - `pointer`
 - `boolean`
 - `void`
+- `wchar`
 - `callback`
 
 Above types are all variable except `callback`. Callback is a procedure
@@ -224,6 +226,7 @@ _${type}_ must be one of the following types:
 - `float`
 - `double`
 - `pointer`
+- `wchar`
 
 Returns corresponding type value form give pointer _p_. The _offset_ is
 byte offset of the given _p_ not aligned value.
