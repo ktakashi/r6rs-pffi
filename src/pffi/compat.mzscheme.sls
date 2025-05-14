@@ -53,7 +53,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void boolean
+            void boolean wchar
 	    ___
 
             ;; pointer ref
@@ -76,6 +76,7 @@
             pointer-ref-c-float
             pointer-ref-c-double
             pointer-ref-c-pointer
+	    pointer-ref-c-wchar
 
             ;; pointer set
             pointer-set-c-uint8!
@@ -97,6 +98,7 @@
             pointer-set-c-float!
             pointer-set-c-double!
             pointer-set-c-pointer!
+	    pointer-set-c-wchar!
 
             size-of-char
             size-of-short
@@ -110,6 +112,7 @@
             size-of-int16_t
             size-of-int32_t
             size-of-int64_t
+	    size-of-wchar
 
             (rename (cpointer? pointer?))
             bytevector->pointer
@@ -142,7 +145,16 @@
     (do ((i 0 (+ i 1)))
         ((= i size-of-pointer))
       (pointer-set-c-uint8! p (+ i offset) (bytevector-u8-ref bv i)))))
-
+(define (pointer-ref-c-wchar p offset)
+  (integer->char
+   (case (ctype-sizeof _wchar)
+     ((2) (pointer-ref-c-uint16 p offset))
+     ((4) (pointer-ref-c-uint32 p offset)))))
+(define (pointer-set-c-wchar! p offset wc)
+  (case (ctype-sizeof _wchar)
+    ((2) (pointer-set-c-uint16! p offset (char->integer wc)))
+    ((4) (pointer-set-c-uint32! p offset (char->integer wc)))))
+  
 
 (define-syntax define-ftype
   (syntax-rules ()
@@ -190,6 +202,7 @@
 (define-ftype pointer        _pointer
   pointer-ref-c-pointer pointer-set-c-pointer!)
 (define-ftype boolean        _stdbool)
+(define-ftype wchar          _wchar pointer-ref-c-wchar pointer-set-c-wchar!)
 (define ___            '___)
 
 ;; for convenience
@@ -236,6 +249,17 @@
 
 (define :varargs-after (string->keyword "varargs-after"))
 
+(define (convert-arg type arg)
+  (cond ((eq? type _pointer)
+	 (cond ((string? arg)
+		(string->utf8 (string-append arg "\x0;")))
+	       (else arg)))
+	((eq? type _wchar) (char->integer arg))
+	(else arg)))
+(define (convert-ret type r)
+  (cond ((eq? type _wchar) (integer->char r))
+	(else r)))
+
 (define (make-c-function lib conv oret name arg-type)
   (define ret (ffi-type-descriptor-alias oret))
   (define (parse-arg-types arg-type)
@@ -253,12 +277,7 @@
 			 (cdr types))
 		   (loop (+ n 1) (cons t r) (cdr types))))))))
   (let-values (((required-type after) (parse-arg-types arg-type)))
-    (define (convert-arg type arg)
-      (cond ((eq? type _pointer)
-	     (cond ((string? arg)
-		    (string->utf8 (string-append arg "\x0;")))
-		   (else arg)))
-	    (else arg)))
+    
     (define (arg->type arg)
       (cond ((string? arg) _string)
 	    ((symbol? arg) _symbol)
@@ -275,6 +294,7 @@
 					      arg))))
 	    ((cpointer? arg) _pointer)
 	    ((boolean? arg) _stdbool)
+	    ((char? arg) _wchar) ;; naive assumption...
 	    (else (assertion-violation 'make-c-function
 				       "Unsupported argument" arg))))
     (if after
@@ -294,7 +314,8 @@
 			  ret after)
 			 (lambda ()
 			   (error 'make-c-function "not found" name))))
-	      (apply f (append converted rest)))))
+	      (convert-ret ret
+	       (apply f (append converted rest))))))
 	(let ((f (get-ffi-obj (symbol->string name) lib
 			      ;; DAMN YOU MORON!!!
 			      ;; seems this doesn't accept mutable pairs
@@ -302,9 +323,20 @@
 			      (_cprocedure (->immutable-list required-type) ret)
 			      (lambda ()
 				(error 'make-c-function "not found" name)))))
-	  (lambda arg* (apply f (map convert-arg required-type arg*)))))))
+	  (lambda arg*
+	    (convert-ret ret
+	     (apply f (map convert-arg required-type arg*)))
+	    )))))
 
-(define (make-c-callback ret args proc) proc)
+(define (make-c-callback oret args proc)
+  (define ret (ffi-type-descriptor-alias oret))
+  (define (unwrap type)
+    (if (ffi-type-descriptor? type)
+	(ffi-type-descriptor-alias type)
+	type))
+  (define types (map unwrap args))
+  (lambda args*
+    (convert-arg ret (apply proc (map convert-ret types args*)))))
 
 ;; dummy
 (define (free-c-callback ignore) #t)
@@ -399,6 +431,7 @@
 (define-sizeof int16_t)
 (define-sizeof int32_t)
 (define-sizeof int64_t)
+(define-sizeof wchar)
 
 (define size-of-unsigned-char  size-of-char)
 (define size-of-unsigned-short size-of-short)
@@ -412,7 +445,6 @@
 (define size-of-uint32         size-of-int32_t)
 (define size-of-int64          size-of-int64_t)
 (define size-of-uint64         size-of-int64_t)
-
 
 (define (bytevector->pointer bv . maybe-offset)
   ;; seems not offset is possible

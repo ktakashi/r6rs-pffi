@@ -57,6 +57,7 @@
             pointer-ref-c-float
             pointer-ref-c-double
             pointer-ref-c-pointer
+	    pointer-ref-c-wchar
 
             ;; pointer set
             pointer-set-c-uint8!
@@ -77,7 +78,8 @@
             pointer-set-c-long!
             pointer-set-c-float!
             pointer-set-c-double!
-            pointer-set-c-pointer!)
+            pointer-set-c-pointer!
+	    pointer-set-c-wchar!)
     (import (rnrs)
 	    (pffi compat))
 

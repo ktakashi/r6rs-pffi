@@ -50,7 +50,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void boolean
+            void boolean wchar
 	    ___
 
             size-of-unsigned-char
@@ -73,6 +73,7 @@
             size-of-uint16_t
             size-of-uint32_t
             size-of-uint64_t
+	    size-of-wchar
 
             ;; pointer ref
             pointer-ref-c-uint8
@@ -94,6 +95,7 @@
             pointer-ref-c-float
             pointer-ref-c-double
             pointer-ref-c-pointer
+	    pointer-ref-c-wchar
 
             ;; pointer set
             pointer-set-c-uint8!
@@ -115,6 +117,7 @@
             pointer-set-c-float!
             pointer-set-c-double!
             pointer-set-c-pointer!
+	    pointer-set-c-wchar!
 
 	    ;; typedef
 	    define-type-alias *

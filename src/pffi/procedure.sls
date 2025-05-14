@@ -49,7 +49,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void boolean
+            void boolean wchar
 	    ___
 
             size-of-char
@@ -64,6 +64,7 @@
             size-of-int16_t
             size-of-int32_t
             size-of-int64_t
+	    size-of-wchar
             )
     (import (rnrs)
             (pffi compat))

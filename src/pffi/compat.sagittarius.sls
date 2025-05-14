@@ -53,6 +53,7 @@
             int64_t uint64_t
             pointer callback
             void boolean
+	    (rename (wchar_t wchar))
 	    ___
 
             ;; pointer ref
@@ -84,6 +85,7 @@
             pointer-ref-c-float
             pointer-ref-c-double
             pointer-ref-c-pointer
+	    pointer-ref-c-wchar
 
             ;; pointer set
             pointer-set-c-uint8!
@@ -105,6 +107,7 @@
             pointer-set-c-float!
             pointer-set-c-double!
             pointer-set-c-pointer!
+	    pointer-set-c-wchar!
 
             ;; sizeof
             size-of-char
@@ -119,6 +122,7 @@
             size-of-int16_t
             size-of-int32_t
             size-of-int64_t
+	    (rename (size-of-wchar_t size-of-wchar))
 
             pointer?
             bytevector->pointer
@@ -127,6 +131,7 @@
             (rename (uinteger->pointer integer->pointer))
             )
     (import (rnrs)
+	    (sagittarius) ;; for cond-expand...
             (rename (sagittarius ffi)
 		    (callback %callback)
 		    (make-c-function %make-c-function)
@@ -148,18 +153,60 @@
 		    (int32_t        ffi:int32_t)
 		    (uint32_t       ffi:uint32_t)
 		    (int64_t        ffi:int64_t)
-		    (uint64_t       ffi:uint64_t))
-            (pffi ffi-type-descriptor))
+		    (uint64_t       ffi:uint64_t)
+		    (wchar_t        ffi:wchar_t)
+		    (pointer-ref-c-wchar ffi:pointer-ref-c-wchar ffi:)
+		    (pointer-set-c-wchar! ffi:pointer-set-c-wchar!))
+            (pffi ffi-type-descriptor)
+	    (srfi :1))
 
 (define (->native-type type)
-  (cond ((ffi-type-descriptor? type) (ffi-type-descriptor-alias type))
+  (cond ((ffi-type-descriptor? type)
+	 (let ((alias (ffi-type-descriptor-alias type)))
+	   (if (eq? alias ffi:wchar_t)
+	       (case size-of-wchar_t
+		 ((2) ffi:uint16_t)
+		 ((4) ffi:uint32_t))
+	       alias)))
 	(else type)))
 
+(define (convert-arg type arg)
+  (cond ((ffi-type-descriptor? type)
+	 (let ((alias (ffi-type-descriptor-alias type)))
+	   (if (eq? alias ffi:wchar_t)
+	       (char->integer arg)
+	       arg)))
+	((eq? type ffi:wchar_t) (char->integer arg))
+	(else arg)))
+(define (convert-arg/guess arg)
+  (if (char? arg)
+      (char->integer arg)
+      arg))
+(define (convert-ret type r)
+  (cond ((ffi-type-descriptor? type)
+	 (let ((alias (ffi-type-descriptor-alias type)))
+	   (if (eq? alias ffi:wchar_t)
+	       (integer->char r)
+	       r)))
+	((eq? type ffi:wchar_t) (integer->char r))
+	(else r)))
 (define (make-c-function lib conv ret name args)
-  (%make-c-function lib (->native-type ret) name (map ->native-type args)))
+  (let ((proc (%make-c-function lib (->native-type ret) name
+				(map ->native-type args))))
+    (if (memq '___ args)
+	(lambda formal
+	  (let ((n (- (length args) 1)))
+	    (let-values (((req opts) (split-at formal n)))
+	      (convert-ret ret
+		(apply proc (append! (map convert-arg args req)
+				     (map convert-arg/guess opts)))))))
+	(lambda formal
+	  (convert-ret ret (apply proc (map convert-arg args formal)))))))
 
 (define (make-c-callback ret args proc)
-  (%make-c-callback (->native-type ret) (map ->native-type args) proc))
+  (define (wrapped . args*)
+    (convert-arg ret (apply proc (map convert-ret args args*))))
+  (%make-c-callback (->native-type ret) (map ->native-type args) wrapped))
 
 (define-syntax callback
   (syntax-rules ()
@@ -204,6 +251,14 @@
 (define-ftype uint32_t size-of-int32_t)
 (define-ftype int64_t)
 (define-ftype uint64_t size-of-int64_t)
+(define-ftype wchar_t)
+
+;; Sagittarius returns integer for wchar so wrap it
+(define (pointer-ref-c-wchar p off)
+  (integer->char (ffi:pointer-ref-c-wchar p off)))
+(define (pointer-set-c-wchar! p off c)
+  (ffi:pointer-set-c-wchar! p off (char->integer c)))
+
 (define pointer (make-pointer-accesible-ffi-type-descriptor
 		 'pointer void* size-of-void*
 		 pointer-ref-c-pointer pointer-set-c-pointer!))

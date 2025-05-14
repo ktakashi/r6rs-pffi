@@ -52,7 +52,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void boolean
+            void boolean wchar
 	    ___
 
             ;; pointer ref
@@ -75,6 +75,7 @@
             pointer-ref-c-float
             pointer-ref-c-double
             pointer-ref-c-pointer
+	    pointer-ref-c-wchar
 
             ;; pointer set
             pointer-set-c-uint8!
@@ -96,6 +97,7 @@
             pointer-set-c-float!
             pointer-set-c-double!
             pointer-set-c-pointer!
+	    pointer-set-c-wchar!
 
             ;; sizeof
             size-of-char
@@ -110,6 +112,7 @@
                     (size-of-int16 size-of-int16_t)
                     (size-of-int32 size-of-int32_t)
                     (size-of-int64 size-of-int64_t))
+	    size-of-wchar
 
             pointer?
             bytevector->pointer
@@ -224,6 +227,7 @@
 (define-type-alias float          float)
 (define-type-alias pointer        void*)
 (define-type-alias boolean        boolean)
+(define-type-alias wchar          wchar_t)
 
 (define (open-shared-object path)
   (load-shared-object path)
@@ -392,6 +396,7 @@
 (define-deref int64)
 (define-deref uint64)
 (define-deref pointer make-integer-pointer pointer->integer)
+(define-deref wchar)
 
 (define size-of-boolean (ftype-sizeof boolean))
 

@@ -52,7 +52,7 @@
             int32_t uint32_t
             int64_t uint64_t
             pointer callback
-            void boolean
+            void boolean wchar
 	    ___
 
             ;; pointer ref
@@ -75,6 +75,7 @@
             pointer-ref-c-float
             pointer-ref-c-double
             pointer-ref-c-pointer
+	    pointer-ref-c-wchar
 
             ;; pointer set
             pointer-set-c-uint8!
@@ -96,6 +97,7 @@
             pointer-set-c-float!
             pointer-set-c-double!
             pointer-set-c-pointer!
+	    pointer-set-c-wchar!
 
             ;; sizeof
             size-of-char
@@ -110,6 +112,7 @@
             size-of-int16_t
             size-of-int32_t
             size-of-int64_t
+	    size-of-wchar
 
             pointer?
             bytevector->pointer
@@ -118,7 +121,7 @@
                     (make-pointer integer->pointer))
             )
     (import (rnrs)
-            (only (guile) dynamic-link dynamic-pointer)
+            (only (guile) dynamic-link dynamic-pointer uname)
             (rename (system foreign)
 		    (short ffi:short)
 		    (unsigned-short ffi:unsigned-short)
@@ -131,6 +134,26 @@
 	    (pffi ffi-type-descriptor)
 	    (only (srfi :1) drop-right split-at)
             (only (srfi :13) string-index-right))
+
+(define size-of-wchar
+  ;; Very unfortunately, Guile doesn't support wchar_t so we need to
+  ;; dispatch like this
+  (case (string->symbol (vector-ref (uname) 0))
+    ((Windows) 2)
+    (else 4)))
+
+(define (pointer-ref-c-wchar p off)
+  (let ((bv (pointer->bytevector p (+ size-of-wchar off))))
+    (integer->char
+     (case size-of-wchar
+       ((2) (bytevector-u16-ref bv off (native-endianness)))
+       ((4) (bytevector-u32-ref bv off (native-endianness)))))))
+(define (pointer-set-c-wchar! p off wc)
+  (let ((bv (pointer->bytevector p (+ size-of-wchar off)))
+	(u (char->integer wc)))
+    (case size-of-wchar
+       ((2) (bytevector-u16-set! bv off u (native-endianness)))
+       ((4) (bytevector-u32-set! bv off u (native-endianness))))))
 
 (define-syntax callback
   (syntax-rules ()
@@ -192,6 +215,10 @@
 (define-ftype pointer        '*
   bytevector-pointer-ref bytevector-pointer-set!)
 (define-ftype boolean        int8) ;; use int8 to make the size = 1
+(define wchar (make-pointer-accesible-ffi-type-descriptor 
+	       'wchar (case size-of-wchar ((2) uint16) ((4) uint32))
+	       size-of-wchar pointer-ref-c-wchar pointer-set-c-wchar!))
+
 (define ___            '___) ;; dummy
 
 ;; for convenience
@@ -219,23 +246,32 @@
   (cond ((ffi-type-descriptor? type) (ffi-type-descriptor-alias type))
 	(else type)))
 
-(define (make-c-function lib conv ffi:ret name arg-types)
-  (define ret (->native-type ffi:ret))
+(define (convert-arg type arg)
   (define (s->p s) (b->p (string->utf8 (string-append s "\x0;"))))
   (define (b->p bv) (bytevector->pointer bv))
+
+  (cond ((eq? type pointer)
+	 (cond ((string? arg)     (s->p arg))
+	       ((bytevector? arg) (b->p arg))
+	       ;; Let Guile complain, if not the proper
+	       ;; one
+	       (else arg)))
+	((eq? type boolean)
+	 (unless (boolean? arg)
+	   (assertion-violation name "Boolean is required" arg))
+	 (if arg 1 0))
+	((eq? type wchar) (char->integer arg))
+	(else arg)))
+
+(define (convert-ret type r)
+  (cond ((eq? type boolean) (eqv? r 1))
+	((eq? type wchar) (integer->char r))
+	(else r)))
+  
+(define (make-c-function lib conv ffi:ret name arg-types)
+  (define ret (->native-type ffi:ret))
   (define ptr (lookup-shared-object lib (symbol->string name)))
-  (define (convert-arg type arg)
-    (cond ((eq? type pointer)
-	   (cond ((string? arg)     (s->p arg))
-		 ((bytevector? arg) (b->p arg))
-		 ;; Let Guile complain, if not the proper
-		 ;; one
-		 (else arg)))
-	  ((eq? type boolean)
-	   (unless (boolean? arg)
-	     (assertion-violation name "Boolean is required" arg))
-	   (if arg 1 0))
-	  (else arg)))
+  
   (define (arg->type arg)
     ;; it's a bit awkward but no other way
     (cond ((number? arg)
@@ -250,10 +286,9 @@
 		 (else (assertion-violation name "Unsuported number" arg))))
 	  ((or (string? arg) (bytevector? arg) (pointer? arg)) pointer)
 	  ((boolean? arg) boolean)
+	  ((char? arg) wchar) ;; naive assumption
 	  (else (assertion-violation name "Unsuported type" arg))))
-  (define (convert-ret type r)
-    (cond ((eq? type boolean) (eqv? r 1))
-	  (else r)))
+
   (cond ((memq ___ arg-types) =>
 	 (lambda (l)
 	   (unless (null? (cdr l))
@@ -276,7 +311,9 @@
 			  (apply fp (map convert-arg arg-types args*))))))))
 
 (define (make-c-callback ret args proc)
-  (procedure->pointer (->native-type ret) proc (map ->native-type args)))
+  (define (wrapped . args*)
+    (convert-arg ret (apply proc (map convert-ret args args*))))
+  (procedure->pointer (->native-type ret) wrapped (map ->native-type args)))
 
 (define-syntax define-deref
   (lambda (x)

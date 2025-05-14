@@ -397,4 +397,18 @@
 
     (test-equal "pointer value (1)" value (pointer-ref-c-int int-pointer 0))))
 
+;; wchar
+(let* ((bv (make-bytevector size-of-wchar 0))
+       (p (bytevector->pointer bv)))
+  (define wtoupper (foreign-procedure test-lib wchar wtoupper (wchar)))
+  (define wcallback
+    (foreign-procedure test-lib wchar wcallback (wchar (callback wchar (wchar)))))
+  (test-assert "wchar set" (pointer-set-c-wchar! p 0 #\a))
+  (test-equal "wchar ref" #\a (pointer-ref-c-wchar p 0))
+  (test-equal "wtoupper" #\A (wtoupper #\a))
+
+  (let ((callback (c-callback wchar ((wchar wc))
+			      (lambda (wc) (char-upcase wc)))))
+    (test-equal "wcallback" #\A (wcallback #\a callback))))
+
 (test-end)

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <wctype.h>
 
 /*  
     test C functions.
@@ -136,5 +137,16 @@ int initial_int_pointer_value()
 {
   return int_value;
 }
+
+wchar_t wtoupper(wchar_t wc)
+{
+  return towupper(wc);
+}
+
+wchar_t wcallback(wchar_t wc, wchar_t (* proc)(wchar_t))
+{
+  return proc(wc);
+}
+
 
 /* TODO more */
