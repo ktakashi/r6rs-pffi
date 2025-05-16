@@ -5,7 +5,7 @@ PFFI is a portable foreign function interface for R6RS Scheme implementations.
 
 ## Changes
 
-### version x.x.x (next release)
+### version 25.05.16
 
 **Breaking changes**
 
