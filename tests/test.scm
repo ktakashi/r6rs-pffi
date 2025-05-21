@@ -411,4 +411,16 @@
 			      (lambda (wc) (char-upcase wc)))))
     (test-equal "wcallback" #\A (wcallback #\a callback))))
 
+;; (define-syntax test-string-argument
+;;   (syntax-rules ()
+;;     ((_ type name)
+;;      (let ()
+;;        (define proc
+;; 	 (foreign-procedure test-lib type name (type (callback type (type)))))
+;;        (define cb (c-callback type (type) string-upcase))
+;;        (test-equal "AA" (proc "aa" cb))))))
+;; ;; char*
+;; (test-string-argument char* str_cb)
+;; (test-string-argument wchar* wstr_cb)
+
 (test-end)

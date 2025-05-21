@@ -148,5 +148,15 @@ wchar_t wcallback(wchar_t wc, wchar_t (* proc)(wchar_t))
   return proc(wc);
 }
 
+char * str_cb(char *st, char * (* cb)(char *))
+{
+  return cb(st);
+}
+
+wchar_t * wstr_cb(wchar_t *st, wchar_t * (* cb)(wchar_t *))
+{
+  return cb(st);
+}
+  
 
 /* TODO more */
