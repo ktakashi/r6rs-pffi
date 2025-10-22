@@ -221,16 +221,6 @@
 
 (define ___            '___) ;; dummy
 
-;; for convenience
-(define int8         int8_t)
-(define uint8        uint8_t)
-(define int16        int16_t)
-(define uint16       uint16_t)
-(define int32        int32_t)
-(define uint32       uint32_t)
-(define int64        int64_t)
-(define uint64       uint64_t)
-
 (define (open-shared-object path)
   (let* ((index (string-index-right path #\.))
          (file (if index
@@ -367,14 +357,14 @@
 (define-deref unsigned-long)
 (define-deref float)
 (define-deref double)
-(define-deref int8)
-(define-deref uint8)
-(define-deref int16)
-(define-deref uint16)
-(define-deref int32)
-(define-deref uint32)
-(define-deref int64)
-(define-deref uint64)
+(define-deref int8_t)
+(define-deref uint8_t)
+(define-deref int16_t)
+(define-deref uint16_t)
+(define-deref int32_t)
+(define-deref uint32_t)
+(define-deref int64_t)
+(define-deref uint64_t)
 
 (define (bytevector-pointer-ref bv index endian)
   (make-pointer
