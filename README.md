@@ -342,6 +342,7 @@ it behave as if nothing is passed.
 - Racket (plt-r6rs v8.16 or later)
 - Guile (3.0.10 or later)
 - Chez Scheme (v10.0.0 or later)
+- Capy Scheme (0.1.0 or later)
 
 The below implementations are no loger supported due to the inactiveness or
 officially declared to be archived.
@@ -367,6 +368,11 @@ initialisation function, however the loaded pointer still indicates NULL.
 
 On Larceny, GC may move pointers so converting bytevector uses wrapper
 technique the same as Vicare. Thus the same limitation is applied to it.
+
+## Capy
+
+Capy Scheme does not support C callbacks due to the CPS conversion. 
+If you try to call `c-callback` implementation-restriction-violation is raised.
 
 ## Misc (Memo)
 

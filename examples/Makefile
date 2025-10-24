@@ -43,3 +43,6 @@ guile: prepare prepare-guile
 	LD_LIBRARY_PATH=$(LDPATH):tests; guile --no-auto-compile -l .guile.rc -L ../src callback.scm
 	rm .guile.rc
 
+capy: prepare
+	LD_LIBRARY_PATH=.:tests; capy -log:info -L ../src struct.scm
+	LD_LIBRARY_PATH=.:tests; capy -log:info -L ../src variable.scm
