@@ -266,7 +266,14 @@
 (define-ftype uint32_t size-of-int32_t)
 (define-ftype int64_t)
 (define-ftype uint64_t size-of-int64_t)
-(define-ftype wchar_t)
+
+(cond-expand
+ ((and cond-expand.version (version (>= "0.9.13")))
+  (define wchar_t
+    (make-pointer-accesible-ffi-type-descriptor
+     'wchar_t wide-character size-of-wchar_t
+     pointer-ref-c-wide-character pointer-set-c-wide-character!)))
+ (else (define-ftype wchar_t)))
 
 ;; Sagittarius returns integer for wchar so wrap it
 (define (pointer-ref-c-wchar p off)
