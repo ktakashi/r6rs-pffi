@@ -56,14 +56,14 @@
 	    ___
 
             ;; pointer ref
-            pointer-ref-c-uint8
-            pointer-ref-c-int8
-            pointer-ref-c-uint16
-            pointer-ref-c-int16
-            pointer-ref-c-uint32
-            pointer-ref-c-int32
-            pointer-ref-c-uint64
-            pointer-ref-c-int64
+            (rename (pointer-ref-c-uint8_t  pointer-ref-c-uint8 )
+		    (pointer-ref-c-int8_t   pointer-ref-c-int8  )
+		    (pointer-ref-c-uint16_t pointer-ref-c-uint16)
+		    (pointer-ref-c-int16_t  pointer-ref-c-int16 )
+		    (pointer-ref-c-uint32_t pointer-ref-c-uint32)
+		    (pointer-ref-c-int32_t  pointer-ref-c-int32 )
+		    (pointer-ref-c-uint64_t pointer-ref-c-uint64)
+		    (pointer-ref-c-int64_t  pointer-ref-c-int64 ))
             pointer-ref-c-unsigned-char
             pointer-ref-c-char
             pointer-ref-c-unsigned-short
@@ -78,14 +78,14 @@
 	    pointer-ref-c-wchar
 
             ;; pointer set
-            pointer-set-c-uint8!
-            pointer-set-c-int8!
-            pointer-set-c-uint16!
-            pointer-set-c-int16!
-            pointer-set-c-uint32!
-            pointer-set-c-int32!
-            pointer-set-c-uint64!
-            pointer-set-c-int64!
+            (rename (pointer-set-c-uint8_t!  pointer-set-c-uint8! )
+		    (pointer-set-c-int8_t!   pointer-set-c-int8!  )
+		    (pointer-set-c-uint16_t! pointer-set-c-uint16!)
+		    (pointer-set-c-int16_t!  pointer-set-c-int16! )
+		    (pointer-set-c-uint32_t! pointer-set-c-uint32!)
+		    (pointer-set-c-int32_t!  pointer-set-c-int32! )
+		    (pointer-set-c-uint64_t! pointer-set-c-uint64!)
+		    (pointer-set-c-int64_t!  pointer-set-c-int64! ))
             pointer-set-c-unsigned-char!
             pointer-set-c-char!
             pointer-set-c-unsigned-short!
