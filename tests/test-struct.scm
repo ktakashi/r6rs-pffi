@@ -49,5 +49,8 @@
       (test-equal "mixed-packed-p" p (mixed-packed-p m))
       (test-equal "mixed-packed-np" np (mixed-packed-np m)))))
 
+;; For guile...
+(define failed (test-runner-fail-count (test-runner-current)))
 (test-end)
-(exit (test-runner-fail-count (test-runner-current)))
+
+(exit failed)

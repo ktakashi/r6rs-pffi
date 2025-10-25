@@ -423,5 +423,8 @@
 ;; (test-string-argument char* str_cb)
 ;; (test-string-argument wchar* wstr_cb)
 
+;; For guile...
+(define failed (test-runner-fail-count (test-runner-current)))
 (test-end)
-(exit (test-runner-fail-count (test-runner-current)))
+
+(exit failed)
