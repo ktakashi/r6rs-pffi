@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  Ubuntu-build:
+  Scheme-env-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,5 +31,18 @@ jobs:
       - name: Run test
         working-directory: target
         run: ./ci-test.sh
-          
-        
+
+  Makefile-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: target
+      - name: Install Implentations
+        run: |
+          sudo apt update
+          suto apt -y install guile-3.0 racket
+      - name: Run test
+        working-directory: target
+        run: make guile racket
