@@ -50,3 +50,4 @@
       (test-equal "mixed-packed-np" np (mixed-packed-np m)))))
 
 (test-end)
+(exit (test-runner-fail-count (test-runner-current)))

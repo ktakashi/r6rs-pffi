@@ -424,3 +424,4 @@
 ;; (test-string-argument wchar* wstr_cb)
 
 (test-end)
+(exit (test-runner-fail-count (test-runner-current)))
