@@ -1,5 +1,13 @@
 ### version x.x.x (future release)
 
+**New implementation**
+
+- Capy Scheme is supported (thanks to @playX18)
+
+**Improvements**
+
+- Better `wchar_t` handling on Sagittarius 0.9.3 or later
+- Removing overriding system object on Guile (thanks to @zadoz03)
 
 ### version 25.05.16
 
