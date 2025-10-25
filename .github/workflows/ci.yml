@@ -41,8 +41,8 @@ jobs:
           path: target
       - name: Install Implentations
         run: |
-          sudo apt-get update
-          suto apt-get -y install guile-3.0 racket
+          sudo apt update
+          sudo apt -y install guile-3.0 racket
       - name: Run test
         working-directory: target
         run: make guile racket
