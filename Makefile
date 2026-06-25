@@ -27,6 +27,10 @@ sagittarius: prepare
 	cd tests; $(SAGITTARIUS) -L../src test.scm
 	cd tests; $(SAGITTARIUS) -L../src test-struct.scm
 
+capy: prepare
+	cd tests; capy --r6rs -L ../src -L lib --script test.scm
+	cd tests; capy --r6rs -L ../src -L lib --script test-struct.scm
+
 prepare-racket:
 # Not sure since when, but Racket requires either platform specific extension
 # e.g. dynlib, or no extension.

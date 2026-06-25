@@ -42,7 +42,32 @@ jobs:
       - name: Install Implentations
         run: |
           sudo apt update
-          sudo apt -y install guile-3.0 racket
+          sudo apt -y install curl guile-3.0 racket
+      - name: Install Capy nightly
+        run: |
+          set -euo pipefail
+          release_json="$(mktemp)"
+          curl -fsSL https://codeberg.org/api/v1/repos/playXE/capy/releases/tags/nightly -o "$release_json"
+          asset_url="$(python3 - "$release_json" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as input:
+              release = json.load(input)
+
+          for asset in release["assets"]:
+              name = asset.get("name", "")
+              if name.endswith("x86_64-unknown-linux-gnu.tar.gz"):
+                  print(asset["browser_download_url"])
+                  break
+          else:
+              raise SystemExit("No Linux x86_64 Capy nightly asset found")
+          PY
+          )"
+          mkdir -p "$HOME/.local/capy"
+          curl -fsSL "$asset_url" -o /tmp/capy-nightly.tar.gz
+          tar -xzf /tmp/capy-nightly.tar.gz -C "$HOME/.local/capy" --strip-components=2
+          echo "$HOME/.local/capy" >> "$GITHUB_PATH"
       - name: Run test
         working-directory: target
-        run: make guile racket
+        run: make guile racket capy

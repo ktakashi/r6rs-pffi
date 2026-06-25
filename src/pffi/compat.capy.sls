@@ -221,15 +221,12 @@
 (define ___            '___) ;; dummy
 
 (define (open-shared-object path)
-  (let* ((index (string-index-right path #\.))
-         (file (if index
-                   (substring path 0 index)
-                   path)))
-    (load-foreign-library file)))
+  (load-foreign-library path))
 (define (lookup-shared-object lib name)
   (foreign-library-pointer lib name))
 
-(define (free-c-callback proc) #t) ;; for now.
+(define (free-c-callback proc)
+  (free-callback-pointer proc))
 
 (define (->native-type type)
   (cond ((ffi-type-descriptor? type) (ffi-type-descriptor-alias type))
@@ -299,9 +296,13 @@
 	     (convert-ret ffi:ret
 			  (apply fp (map convert-arg arg-types args*))))))))
 
-;; NOTE: Capy does not yet support callbacks due to complexity of doing it with CPS conversion
 (define (make-c-callback ret args proc)
-  (implementation-restriction-violation 'make-c-callback "Callbacks are not supported in this implementation."))
+  (procedure->callback-pointer
+   (->native-type ret)
+   (map ->native-type args)
+   (lambda native-args
+     (convert-arg ret
+		  (apply proc (map convert-ret args native-args))))))
 
 (define-syntax define-deref
   (lambda (x)

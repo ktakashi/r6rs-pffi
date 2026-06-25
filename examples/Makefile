@@ -44,5 +44,6 @@ guile: prepare prepare-guile
 	rm .guile.rc
 
 capy: prepare
-	LD_LIBRARY_PATH=.:tests; capy -log:info -L ../src struct.scm
-	LD_LIBRARY_PATH=.:tests; capy -log:info -L ../src variable.scm
+	capy --r6rs -L ../src --script struct.scm
+	capy --r6rs -L ../src --script variable.scm
+	capy --r6rs -L ../src --script callback.scm
